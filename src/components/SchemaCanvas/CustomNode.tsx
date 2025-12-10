@@ -8,7 +8,7 @@ import {
   Link as LinkIcon,
   ArrowDownToLine,
 } from "lucide-react";
-import { CustomNodeType } from "@/lib/types";
+import { CustomNodeType } from "@schema-viz/lib/types";
 
 export const CustomNode = memo(
   ({ data, selected }: NodeProps<CustomNodeType>) => {

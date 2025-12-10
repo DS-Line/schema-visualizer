@@ -14,8 +14,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { SchemaData, SchemaRef, AppNode } from "@/lib/types";
-import { getLayoutedElements } from "@/lib/layout";
+import { SchemaData, SchemaRef, AppNode } from "@schema-viz/lib/types";
+import { getLayoutedElements } from "@schema-viz/lib/layout";
 import { CustomNode } from "./CustomNode";
 import { CustomEdge } from "./CustomEdge";
 

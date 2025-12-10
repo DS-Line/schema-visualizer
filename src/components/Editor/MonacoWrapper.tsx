@@ -3,7 +3,7 @@ import React, { useRef, useEffect } from "react";
 import Editor, { Monaco, OnMount } from "@monaco-editor/react";
 import type { editor, languages, Position, IDisposable } from "monaco-editor";
 import { Loader2 } from "lucide-react";
-import { SchemaTable } from "@/lib/types";
+import { SchemaTable } from "@schema-viz/lib/types";
 
 interface MonacoWrapperProps {
   value: string;

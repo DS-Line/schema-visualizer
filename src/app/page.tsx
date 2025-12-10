@@ -1,6 +1,6 @@
 "use client";
 
-import { SchemaBuilder } from "@/SchemaBuilder";
+import { SchemaBuilder } from "@schema-viz/SchemaBuilder";
 
 const DEMO_SCHEMA = `CREATE TABLE users (
   id integer PRIMARY KEY,
