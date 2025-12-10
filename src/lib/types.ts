@@ -1,3 +1,6 @@
+// src/lib/types.ts
+import type { Node, Edge } from '@xyflow/react';
+
 export interface SchemaCol {
   name: string;
   type: string;
@@ -5,10 +8,10 @@ export interface SchemaCol {
   isFk: boolean;
 }
 
-export interface SchemaNode {
+export interface SchemaTable {
   name: string;
   columns: SchemaCol[];
-  type: "table" | "view";
+  type: 'table' | 'view';
 }
 
 export interface SchemaRef {
@@ -21,30 +24,23 @@ export interface SchemaRef {
 }
 
 export interface SchemaData {
-  nodes: SchemaNode[];
+  tables: SchemaTable[];
   refs: SchemaRef[];
   fetchedCols: Set<string>;
   error: string | null;
 }
 
-export interface NodePosition {
-  x: number;
-  y: number;
-}
+// --- React Flow Specific Types ---
 
-export interface DraggingState {
-  name: string;
-  origX: number;
-  origY: number;
-  mouseX: number;
-  mouseY: number;
-}
+// 1. Define the Data shape for your Custom Node
+export type CustomNodeData = {
+  table: SchemaTable;
+  fetchedCols: Set<string>;
+};
 
-export interface ConnectingState {
-  startTable: string;
-  startCol: string;
-  startX: number;
-  startY: number;
-  currX: number;
-  currY: number;
-}
+// 2. Define the specific Node Type
+// Node<Data, TypeName>
+export type CustomNodeType = Node<CustomNodeData, 'customTable'>;
+
+// 3. Union type if you had multiple node types (we only have one for now)
+export type AppNode = CustomNodeType;
