@@ -136,8 +136,17 @@ export const Canvas = ({
         <Background color="#334155" gap={20} size={1} />
 
         <Controls
-          className="bg-slate-800 border-slate-700 fill-slate-200"
           showInteractive={false}
+          className="shadow-xl"
+          style={
+            {
+              // Force React Flow to use Dark Mode colors for the buttons
+              "--xy-controls-button-background-color": "#1e293b", // bg-slate-800
+              "--xy-controls-button-background-color-hover": "#334155", // hover:bg-slate-700
+              "--xy-controls-button-color": "#cbd5e1", // text-slate-300
+              "--xy-controls-button-border-color": "#334155", // border-slate-700
+            } as React.CSSProperties
+          }
         />
       </ReactFlow>
 
