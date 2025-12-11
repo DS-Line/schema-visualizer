@@ -1,9 +1,9 @@
 "use client";
-import React, { useRef, useEffect } from "react";
 import Editor, { Monaco, OnMount } from "@monaco-editor/react";
-import type { editor, languages, Position, IDisposable } from "monaco-editor";
-import { Loader2 } from "lucide-react";
 import { SchemaTable } from "@schema-viz/lib/types";
+import { Loader2 } from "lucide-react";
+import type { editor, IDisposable, languages, Position } from "monaco-editor";
+import { useEffect, useRef } from "react";
 
 interface MonacoWrapperProps {
   value: string;
@@ -12,12 +12,12 @@ interface MonacoWrapperProps {
   schemaTables?: SchemaTable[];
 }
 
-export const MonacoWrapper: React.FC<MonacoWrapperProps> = ({
+export const MonacoWrapper = ({
   value,
   onChange,
   readOnly,
   schemaTables = [],
-}) => {
+}: MonacoWrapperProps) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const decorationsRef = useRef<string[]>([]);

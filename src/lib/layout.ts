@@ -1,13 +1,13 @@
-import dagre from "dagre";
 import { Edge, Position } from "@xyflow/react";
-import { SchemaTable, AppNode } from "./types"; // Import AppNode
+import dagre from "dagre";
+import { AppNode, SchemaTable } from "./types";
 
 const NODE_WIDTH = 280;
 const HEADER_HEIGHT = 50;
 const ROW_HEIGHT = 40;
 
 export const getLayoutedElements = (
-  nodes: AppNode[], // Changed from Node[] to AppNode[]
+  nodes: AppNode[], 
   edges: Edge[],
   tables: SchemaTable[]
 ) => {

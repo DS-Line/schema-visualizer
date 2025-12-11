@@ -1,23 +1,27 @@
 "use client";
-import React, { useEffect, useCallback, useMemo } from "react";
+
+import { useCallback, useEffect, useMemo } from "react";
+
 import {
-  ReactFlow,
   Background,
-  Controls,
-  useNodesState,
-  useEdgesState,
   Connection,
+  Controls,
   Edge,
+  EdgeTypes,
   MarkerType,
   NodeTypes,
-  EdgeTypes,
+  ReactFlow,
+  useEdgesState,
+  useNodesState,
 } from "@xyflow/react";
+
 import "@xyflow/react/dist/style.css";
 
-import { SchemaData, SchemaRef, AppNode } from "@schema-viz/lib/types";
 import { getLayoutedElements } from "@schema-viz/lib/layout";
-import { CustomNode } from "./CustomNode";
+import { AppNode, SchemaData, SchemaRef } from "@schema-viz/lib/types";
+
 import { CustomEdge } from "./CustomEdge";
+import { CustomNode } from "./CustomNode";
 
 interface CanvasProps {
   data: SchemaData;
@@ -26,12 +30,12 @@ interface CanvasProps {
   readOnly?: boolean;
 }
 
-export const Canvas: React.FC<CanvasProps> = ({
+export const Canvas = ({
   data,
   onAddRef,
   onRemoveRef,
   readOnly,
-}) => {
+}: CanvasProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
@@ -131,7 +135,6 @@ export const Canvas: React.FC<CanvasProps> = ({
       >
         <Background color="#334155" gap={20} size={1} />
 
-        {/* UPDATED CONTROLS: Removed the interactive lock button */}
         <Controls
           className="bg-slate-800 border-slate-700 fill-slate-200"
           showInteractive={false}

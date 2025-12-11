@@ -1,5 +1,4 @@
-// src/lib/types.ts
-import type { Node, Edge } from "@xyflow/react";
+import type { Node } from "@xyflow/react";
 
 export interface SchemaCol {
   name: string;

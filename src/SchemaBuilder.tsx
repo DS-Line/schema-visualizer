@@ -1,19 +1,13 @@
 "use client";
-import React, { useState, useMemo, useCallback } from "react";
-import dynamic from "next/dynamic"; // 1. Import dynamic
-import {
-  Database,
-  Save,
-  RotateCcw,
-  Lock,
-  LockOpen,
-  Loader2,
-} from "lucide-react";
+
+import dynamic from "next/dynamic";
+import { useCallback, useMemo, useState } from "react";
+
+import { Database, Loader2, Lock, RotateCcw, Save } from "lucide-react";
+
 import { parseSchema } from "./lib/parser";
 import { SchemaRef } from "./lib/types";
 
-// 2. Dynamically import heavy Client-side components
-// This replaces the normal static imports
 const MonacoWrapper = dynamic(
   () =>
     import("./components/Editor/MonacoWrapper").then(
@@ -47,16 +41,14 @@ interface SchemaBuilderProps {
   readOnly?: boolean;
 }
 
-export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
+export const SchemaBuilder = ({
   initialSchema,
   onSave,
-  readOnly: initialReadOnly = false,
-}) => {
+  readOnly = false,
+}: SchemaBuilderProps) => {
   const [code, setCode] = useState<string>(initialSchema);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [isLocked, setIsLocked] = useState<boolean>(initialReadOnly);
-
-  // No need for 'mounted' state anymore!
+  const isLocked = readOnly;
 
   const schemaData = useMemo(() => parseSchema(code), [code]);
 
@@ -89,25 +81,10 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
             <Database size={20} /> SchemaVis
           </div>
           <div className="flex gap-2 items-center">
-            {/* Lock Button */}
-            <button
-              onClick={() => setIsLocked(!isLocked)}
-              className={`p-2 rounded transition-colors ${
-                isLocked
-                  ? "bg-amber-500/10 text-amber-500"
-                  : "text-slate-500 hover:bg-slate-800"
-              }`}
-              title={isLocked ? "Unlock Editor" : "Lock Editor"}
-            >
-              {isLocked ? <Lock size={16} /> : <LockOpen size={16} />}
-            </button>
-
-            <div className="h-4 w-px bg-slate-700 mx-1" />
-
             <button
               onClick={() => setCode(initialSchema)}
               disabled={isLocked}
-              className="p-2 hover:bg-slate-800 rounded text-slate-400 disabled:opacity-30 transition-colors"
+              className="p-2 hover:bg-slate-800 rounded text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Reset"
             >
               <RotateCcw size={16} />

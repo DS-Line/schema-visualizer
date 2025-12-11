@@ -1,14 +1,14 @@
 "use client";
-import React, { memo } from "react";
-import { Handle, Position, NodeProps } from "@xyflow/react";
+import { CustomNodeType } from "@schema-viz/lib/types";
+import { Handle, NodeProps, Position } from "@xyflow/react";
 import {
+  ArrowDownToLine,
   Database,
   Eye,
   Key,
   Link as LinkIcon,
-  ArrowDownToLine,
 } from "lucide-react";
-import { CustomNodeType } from "@schema-viz/lib/types";
+import { memo } from "react";
 
 export const CustomNode = memo(
   ({ data, selected }: NodeProps<CustomNodeType>) => {
@@ -66,16 +66,12 @@ export const CustomNode = memo(
                 key={col.name}
                 className="relative group flex items-center justify-between px-4 py-2 hover:bg-slate-700/50 border-b border-slate-700/30 last:border-0"
               >
-                {/* --- LEFT HANDLE (Target) --- */}
-                {/* Large hit area, small visible dot */}
                 <Handle
                   type="target"
                   position={Position.Left}
                   id={handleId}
                   className="!w-full !h-full !rounded-none !border-none !bg-transparent !top-0 !bottom-0 !left-0 !transform-none z-10"
-                >
-                  {/* <div className="absolute top-1/2 left-0 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" /> */}
-                </Handle>
+                ></Handle>
 
                 {/* Column Content */}
                 <div className="flex items-center gap-2 overflow-hidden pointer-events-none pl-2">
@@ -100,15 +96,12 @@ export const CustomNode = memo(
                   {col.type}
                 </span>
 
-                {/* --- RIGHT HANDLE (Source) --- */}
                 <Handle
                   type="source"
                   position={Position.Right}
                   id={handleId}
                   className="!w-full !h-full !rounded-none !border-none !bg-transparent !top-0 !bottom-0 !right-0 !transform-none z-10"
-                >
-                  {/* <div className="absolute top-1/2 right-0 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" /> */}
-                </Handle>
+                ></Handle>
               </div>
             );
           })}

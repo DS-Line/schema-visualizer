@@ -1,5 +1,4 @@
 "use client";
-import React from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -7,9 +6,9 @@ import {
   getBezierPath,
 } from "@xyflow/react";
 import { X } from "lucide-react";
+import React from "react";
 
 export const CustomEdge = ({
-  id,
   sourceX,
   sourceY,
   targetX,
@@ -39,7 +38,7 @@ export const CustomEdge = ({
   return (
     <>
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
-      {/* Only show delete button if explicitly allowed (not system ref, not read only) */}
+      {/* Only show delete button if explicitly allowed */}
       {data?.isDeletable && (
         <EdgeLabelRenderer>
           <div

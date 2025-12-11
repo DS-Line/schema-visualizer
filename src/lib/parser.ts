@@ -1,6 +1,6 @@
-import { SchemaData, SchemaTable, SchemaRef, SchemaCol } from "./types";
+import { SchemaCol, SchemaData, SchemaRef, SchemaTable } from "./types";
 
-// Helper: Parse standard CREATE TABLE columns
+// Parse standard CREATE TABLE columns
 const parseSQLColumns = (body: string): SchemaCol[] => {
   return body
     .split(/,(?![^(]*\))/)
@@ -22,7 +22,7 @@ const parseSQLColumns = (body: string): SchemaCol[] => {
     .filter((c): c is SchemaCol => c !== null);
 };
 
-// Helper: Parse SELECT columns for Views (V1 Logic Restored)
+// Parse SELECT columns for Views
 const parseSelectColumns = (query: string): SchemaCol[] => {
   const selectMatch = /SELECT\s+([\s\S]+?)\s+FROM/i.exec(query);
   if (!selectMatch) return [];
@@ -81,7 +81,7 @@ export const parseSchema = (text: string): SchemaData => {
     });
   }
 
-  // 2. Views (Fixed)
+  // 2. Views
   const viewRegex =
     /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+["`]?(\w+)["`]?\s*(?:\(([^)]+)\))?\s*AS\s+([\s\S]+?)(?:;|$)/gi;
   while ((match = viewRegex.exec(maskedText)) !== null) {
