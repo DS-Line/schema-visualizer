@@ -1,15 +1,15 @@
 "use client";
 import Editor, { Monaco, OnMount } from "@monaco-editor/react";
-import { SchemaTable } from "@schema-viz/lib/types";
+import { SchemaTable, SchemaError } from "@schema-viz/lib/types";
 import { Loader2 } from "lucide-react";
 import type { editor, IDisposable, languages, Position } from "monaco-editor";
 import { useEffect, useRef } from "react";
-
 interface MonacoWrapperProps {
   value: string;
   onChange: (val: string) => void;
   readOnly?: boolean;
   schemaTables?: SchemaTable[];
+  validationErrors?: SchemaError[];
 }
 
 export const MonacoWrapper = ({
@@ -17,6 +17,7 @@ export const MonacoWrapper = ({
   onChange,
   readOnly,
   schemaTables = [],
+  validationErrors = [],
 }: MonacoWrapperProps) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -53,7 +54,23 @@ export const MonacoWrapper = ({
       metadataMatches
     );
   };
-
+  // Squiggly Lines (Markers)
+  useEffect(() => {
+    if (monacoRef.current && editorRef.current) {
+      const model = editorRef.current.getModel();
+      if (model) {
+        const markers = validationErrors.map((err) => ({
+          severity: 8, 
+          message: err.message,
+          startLineNumber: err.startLineNumber,
+          startColumn: err.startColumn,
+          endLineNumber: err.endLineNumber,
+          endColumn: err.endColumn,
+        }));
+        monacoRef.current.editor.setModelMarkers(model, "owner", markers);
+      }
+    }
+  }, [validationErrors]);
   useEffect(() => {
     const monaco = monacoRef.current;
     if (!monaco || !schemaTables) return;

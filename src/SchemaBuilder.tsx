@@ -28,7 +28,7 @@ const Canvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex-1 bg-slate-950 flex items-center justify-center text-slate-500">
+      <div className="h-full flex items-center justify-center text-slate-500">
         Loading Canvas...
       </div>
     ),
@@ -73,28 +73,28 @@ export const SchemaBuilder = ({
   );
 
   return (
-    <div className="flex h-screen w-full bg-slate-950 text-slate-200 font-sans overflow-hidden">
+    <div className="flex flex-row h-full w-full bg-slate-950 text-slate-200 font-sans overflow-hidden border border-slate-800 rounded-lg shadow-sm">
       {/* Sidebar / Editor */}
-      <div className="w-[450px] flex flex-col border-r border-slate-800 bg-slate-900 z-10 shadow-2xl flex-shrink-0">
-        <div className="h-14 flex items-center justify-between px-4 border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-2 text-blue-400 font-bold">
-            <Database size={20} /> SchemaVis
+      <div className="w-[400px] flex flex-col border-r border-slate-800 bg-slate-900 z-10 flex-shrink-0">
+        <div className="h-12 flex items-center justify-between px-3 border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
+            <Database size={18} /> SchemaVis
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-1 items-center">
             <button
               onClick={() => setCode(initialSchema)}
               disabled={isLocked}
-              className="p-2 hover:bg-slate-800 rounded text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 hover:bg-slate-800 rounded text-slate-400 disabled:opacity-30 transition-colors"
               title="Reset"
             >
-              <RotateCcw size={16} />
+              <RotateCcw size={14} />
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving || isLocked}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1 rounded text-xs font-bold flex gap-1 items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <Save size={14} /> {isSaving ? "Saving..." : "Update"}
+              <Save size={14} /> {isSaving ? "Saving" : "Save"}
             </button>
           </div>
         </div>
@@ -105,6 +105,7 @@ export const SchemaBuilder = ({
             onChange={setCode}
             readOnly={isLocked}
             schemaTables={schemaData.tables}
+            validationErrors={schemaData.errors}
           />
           {isLocked && (
             <div className="absolute top-2 right-4 pointer-events-none flex items-center gap-2 text-xs text-amber-500 font-mono opacity-80 z-50">
@@ -113,20 +114,26 @@ export const SchemaBuilder = ({
           )}
         </div>
 
-        {schemaData.error && (
-          <div className="bg-red-900/90 text-red-100 p-3 text-xs border-t border-red-700 break-words flex items-start gap-2 shadow-inner">
-            <span className="font-bold">Error:</span> {schemaData.error}
+        {/* Error Count Footer */}
+        {schemaData.errors.length > 0 && (
+          <div className="bg-red-900/20 text-red-200 px-3 py-1 text-xs border-t border-red-900/50 flex justify-between items-center">
+            <span>
+              {schemaData.errors.length} Issue
+              {schemaData.errors.length > 1 ? "s" : ""} found
+            </span>
           </div>
         )}
       </div>
 
       {/* Visualizer */}
-      <Canvas
-        data={schemaData}
-        onAddRef={(ref) => setCode((prev) => prev + ref)}
-        onRemoveRef={handleRemoveRef}
-        readOnly={isLocked}
-      />
+      <div className="flex-1 h-full min-w-0">
+        <Canvas
+          data={schemaData}
+          onAddRef={(ref) => setCode((prev) => prev + ref)}
+          onRemoveRef={handleRemoveRef}
+          readOnly={isLocked}
+        />
+      </div>
     </div>
   );
 };

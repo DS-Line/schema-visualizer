@@ -22,11 +22,19 @@ export interface SchemaRef {
   isSystem: boolean;
 }
 
+export interface SchemaError {
+  message: string;
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
+}
+
 export interface SchemaData {
   tables: SchemaTable[];
   refs: SchemaRef[];
   fetchedCols: Set<string>;
-  error: string | null;
+  errors: SchemaError[];
 }
 
 export type CustomNodeData = {

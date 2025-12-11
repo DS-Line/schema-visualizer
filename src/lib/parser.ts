@@ -1,7 +1,16 @@
-import { SchemaCol, SchemaData, SchemaRef, SchemaTable } from "./types";
+import { SchemaCol, SchemaData, SchemaError, SchemaRef, SchemaTable } from "./types";
+
+// Convert character index to Line/Column
+const getLinePos = (text: string, index: number) => {
+  const substring = text.substring(0, index);
+  const lines = substring.split("\n");
+  const line = lines.length;
+  const col = lines[lines.length - 1].length + 1;
+  return { line, col };
+};
 
 // Parse standard CREATE TABLE columns
-const parseSQLColumns = (body: string): SchemaCol[] => {
+const parseColumns = (body: string): SchemaCol[] => {
   return body
     .split(/,(?![^(]*\))/)
     .map((colStr): SchemaCol | null => {
@@ -61,9 +70,9 @@ export const parseSchema = (text: string): SchemaData => {
   const tables: SchemaTable[] = [];
   const refs: SchemaRef[] = [];
   const fetchedCols = new Set<string>();
-  let error: string | null = null;
+  const errors: SchemaError[] = [];
 
-  if (!text) return { tables, refs, fetchedCols, error };
+  if (!text) return { tables, refs, fetchedCols, errors };
 
   const maskedText = text
     .replace(/--.*$/gm, (m) => " ".repeat(m.length))
@@ -76,7 +85,7 @@ export const parseSchema = (text: string): SchemaData => {
   while ((match = tableRegex.exec(maskedText)) !== null) {
     tables.push({
       name: match[1],
-      columns: parseSQLColumns(match[2]),
+      columns: parseColumns(match[2]),
       type: "table",
     });
   }
@@ -104,18 +113,50 @@ export const parseSchema = (text: string): SchemaData => {
     });
   }
 
-  // 4. User Refs
+  // 4. User Refs & Validation
   const userRefRegex =
     /--\s*Ref:\s*(\w+)["`]?\.["`]?(\w+)["`]?\s*[>=<\-]\s*(\w+)["`]?\.["`]?(\w+)["`]?/gi;
   while ((match = userRefRegex.exec(text)) !== null) {
+    const fromTable = match[1];
+    const fromCol = match[2];
+    const toTable = match[3];
+    const toCol = match[4];
+
     refs.push({
       id: `usr-${match.index}`,
-      fromTable: match[1],
-      fromCol: match[2],
-      toTable: match[3],
-      toCol: match[4],
+      fromTable,
+      fromCol,
+      toTable,
+      toCol,
       isSystem: false,
     });
+
+    // --- Validation Logic ---
+    const fromT = tables.find((t) => t.name === fromTable);
+    const toT = tables.find((t) => t.name === toTable);
+    let errorMsg = null;
+
+    if (!fromT) errorMsg = `Source table '${fromTable}' not found`;
+    else if (
+      fromT.type === "table" &&
+      !fromT.columns.find((c) => c.name === fromCol)
+    )
+      errorMsg = `Column '${fromCol}' not found in '${fromTable}'`;
+    else if (!toT) errorMsg = `Target table '${toTable}' not found`;
+    else if (toT.type === "table" && !toT.columns.find((c) => c.name === toCol))
+      errorMsg = `Column '${toCol}' not found in '${toTable}'`;
+
+    if (errorMsg) {
+      const start = getLinePos(text, match.index);
+      const end = getLinePos(text, match.index + match[0].length);
+      errors.push({
+        message: errorMsg,
+        startLineNumber: start.line,
+        startColumn: start.col,
+        endLineNumber: end.line,
+        endColumn: end.col,
+      });
+    }
   }
 
   // 5. Fetch
@@ -124,26 +165,14 @@ export const parseSchema = (text: string): SchemaData => {
     match[1].split(",").forEach((i) => fetchedCols.add(i.trim()));
   }
 
-  // 6. Validation
+  // 6. Post-process FK flags
   refs.forEach((ref) => {
     const fromT = tables.find((t) => t.name === ref.fromTable);
-    const toT = tables.find((t) => t.name === ref.toTable);
-
-    // Only flag errors for Tables, Views are more flexible
-    if (!fromT) {
-      error = `Error: Table '${ref.fromTable}' not found.`;
-    } else if (
-      fromT.type === "table" &&
-      !fromT.columns.find((c) => c.name === ref.fromCol)
-    ) {
-      error = `Error: Column '${ref.fromCol}' not found in '${ref.fromTable}'.`;
-    }
-
     if (fromT && fromT.type === "table") {
       const col = fromT.columns.find((c) => c.name === ref.fromCol);
       if (col) col.isFk = true;
     }
   });
 
-  return { tables, refs, fetchedCols, error };
+  return { tables, refs, fetchedCols, errors };
 };
