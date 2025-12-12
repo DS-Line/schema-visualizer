@@ -1,9 +1,10 @@
 "use client";
 import Editor, { Monaco, OnMount } from "@monaco-editor/react";
-import { SchemaTable, SchemaError } from "@schema-viz/lib/types";
+import { SchemaError, SchemaTable } from "@schema-viz/lib/types";
 import { Loader2 } from "lucide-react";
 import type { editor, IDisposable, languages, Position } from "monaco-editor";
 import { useEffect, useRef } from "react";
+
 interface MonacoWrapperProps {
   value: string;
   onChange: (val: string) => void;
@@ -71,6 +72,7 @@ export const MonacoWrapper = ({
       }
     }
   }, [validationErrors]);
+
   useEffect(() => {
     const monaco = monacoRef.current;
     if (!monaco || !schemaTables) return;
@@ -183,12 +185,14 @@ export const MonacoWrapper = ({
       <style>{`.metadata-token { color: #f472b6 !important; font-weight: bold; font-style: normal !important; }`}</style>
       <Editor
         height="100%"
+        width="100%"
         defaultLanguage="sql"
         value={value}
         onChange={handleChange}
         onMount={handleMount}
         loading={<Loader2 className="animate-spin text-blue-500" />}
         options={{
+          automaticLayout: true,
           readOnly,
           minimap: { enabled: false },
           fontSize: 14,

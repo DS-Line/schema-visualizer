@@ -2,7 +2,7 @@ import { Edge, Position } from "@xyflow/react";
 import dagre from "dagre";
 import { AppNode, SchemaTable } from "./types";
 
-const NODE_WIDTH = 280;
+const NODE_WIDTH = 350;
 const HEADER_HEIGHT = 50;
 const ROW_HEIGHT = 40;
 

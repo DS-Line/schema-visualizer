@@ -80,7 +80,7 @@ export const parseSchema = (text: string): SchemaData => {
 
   // 1. Tables
   const tableRegex =
-    /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?["`]?(\w+)["`]?\s*\(([^;]+)\);?/gi;
+    /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF NOT EXISTS\s+)?["`]?(\w+)["`]?\s*\(([^;]+)\);?/gi;
   let match;
   while ((match = tableRegex.exec(maskedText)) !== null) {
     tables.push({
