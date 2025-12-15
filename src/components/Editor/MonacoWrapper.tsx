@@ -196,7 +196,7 @@ export const MonacoWrapper = ({
 
   return (
     <div className="h-full w-full relative">
-      <style>{`.metadata-token { color: #d946ef !important; font-weight: bold; font-style: normal !important; }`}</style>
+      <style>{`.metadata-token { color: #c93fdfff !important; font-weight: bold; font-style: normal !important; }`}</style>
       <Editor
         height="100%"
         width="100%"
