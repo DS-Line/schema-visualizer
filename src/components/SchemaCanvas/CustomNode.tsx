@@ -32,7 +32,7 @@ export const CustomNode = memo(
           className={`
         custom-drag-handle 
         px-4 py-3 flex items-center gap-2 border-b border-slate-700/50 cursor-grab active:cursor-grabbing
-        ${isView ? "bg-teal-900/40" : "bg-slate-900"}
+        ${isView ? "bg-green-900/90" : "bg-slate-900"}
       `}
         >
           {isView ? (

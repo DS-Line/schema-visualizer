@@ -162,8 +162,8 @@ export const SchemaBuilder = ({
               <div className="flex gap-2 items-center">
                 <button
                   onClick={handleSave}
-                  disabled={isSaving || readOnly}
-                  className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={isSaving || readOnly || firstError !== undefined}
+                  className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Save changes"
                 >
                   {isSaving ? (

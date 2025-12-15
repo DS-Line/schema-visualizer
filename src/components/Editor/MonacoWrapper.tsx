@@ -11,7 +11,7 @@ interface MonacoWrapperProps {
   readOnly?: boolean;
   schemaTables?: SchemaTable[];
   validationErrors?: SchemaError[];
-  onCursorChange?: (line: number, col: number) => void; // NEW PROP
+  onCursorChange?: (line: number, col: number) => void;
 }
 
 export const MonacoWrapper = ({
