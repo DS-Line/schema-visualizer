@@ -214,6 +214,10 @@ export const MonacoWrapper = ({
           scrollBeyondLastLine: false,
           padding: { top: 16, bottom: 16 },
           suggest: { showKeywords: false },
+          unicodeHighlight: {
+            invisibleCharacters: false,
+            ambiguousCharacters: false, // Helps with weird quote marks from blogs
+          },
         }}
       />
     </div>
