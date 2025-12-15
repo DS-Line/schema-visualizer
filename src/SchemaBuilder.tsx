@@ -147,14 +147,14 @@ export const SchemaBuilder = ({
       {/* 1. LEFT SIDEBAR */}
       <div
         style={{ width: isCollapsed ? 0 : sidebarWidth }}
-        className={`flex flex-col bg-[#f3f3f4] z-10 flex-shrink-0 relative transition-all duration-75 ease-linear 
+        className={`flex flex-col bg-[#f2f2ed] z-10 flex-shrink-0 relative transition-all duration-75 ease-linear 
           ${isResizing ? "pointer-events-none select-none" : ""}
           ${isCollapsed ? "border-none" : "border-r border-gray-200"} 
         `}
       >
         {!isCollapsed && (
           <>
-            <div className="h-12 flex items-center justify-between px-3 border-b border-gray-200 shrink-0 overflow-hidden bg-[#f3f3f4]">
+            <div className="h-12 flex items-center justify-between px-3 border-b border-gray-200 shrink-0 overflow-hidden bg-[#f2f2ed]">
               <div className="flex items-center gap-2 font-bold text-md truncate text-gray-700">
                 <Database size={18} />
                 <span className="hidden sm:inline">SCHEMA</span>
@@ -222,7 +222,7 @@ export const SchemaBuilder = ({
                   </div>
                 )}
               </div>
-              <div className="bg-[#f3f3f4] border-t border-gray-200 flex justify-between items-center px-3 py-1 text-xs shrink-0 h-8 gap-4">
+              <div className="bg-[#f2f2ed] border-t border-gray-200 flex justify-between items-center px-3 py-1 text-xs shrink-0 h-8 gap-4">
                 {/* Left: Validation Status */}
                 <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
                   {firstError ? (

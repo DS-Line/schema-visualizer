@@ -166,7 +166,7 @@ export const MonacoWrapper = ({
       inherit: true,
       rules: [],
       colors: {
-        "editor.background": "#f3f3f4",
+        "editor.background": "#f2f2ed",
         "editor.lineHighlightBackground": "#e5e7eb",
       },
     });
