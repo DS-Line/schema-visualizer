@@ -1,5 +1,9 @@
 "use client";
 import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  Copy,
   Database,
   Loader2,
   Lock,
@@ -9,13 +13,7 @@ import {
   Save,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseSchema } from "./lib/parser";
 import { SchemaRef } from "./lib/types";
 
@@ -27,19 +25,18 @@ const MonacoWrapper = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-full w-full flex items-center justify-center">
+      <div className="h-full w-full flex items-center justify-center text-gray-400">
         <Loader2 className="animate-spin" />
       </div>
     ),
   }
 );
-
 const Canvas = dynamic(
   () => import("./components/SchemaCanvas/Canvas").then((mod) => mod.Canvas),
   {
     ssr: false,
     loading: () => (
-      <div className="h-full flex items-center justify-center text-slate-500">
+      <div className="h-full flex items-center justify-center text-gray-400">
         Loading Canvas...
       </div>
     ),
@@ -63,8 +60,12 @@ export const SchemaBuilder = ({
 }: SchemaBuilderProps) => {
   const [code, setCode] = useState<string>(initialSchema);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [cursorPos, setCursorPos] = useState<{ line: number; col: number }>({
+    line: 1,
+    col: 1,
+  });
 
-  // Sidebar State
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -76,6 +77,16 @@ export const SchemaBuilder = ({
     setIsSaving(true);
     await onSave(code);
     setIsSaving(false);
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy text", err);
+    }
   };
 
   const handleRemoveRef = useCallback(
@@ -126,56 +137,68 @@ export const SchemaBuilder = ({
     };
   }, [isResizing, resize, stopResizing]);
 
+  const firstError = schemaData.errors[0];
+
   return (
     <div
       ref={sidebarRef}
-      className="flex flex-row h-full w-full bg-slate-950 text-slate-200 font-sans overflow-hidden border border-slate-800 rounded-lg shadow-sm relative select-none"
+      className="flex flex-row h-full w-full bg-white text-gray-800 font-sans overflow-hidden border border-gray-200 rounded-lg shadow-sm relative select-none"
     >
       {/* 1. LEFT SIDEBAR */}
       <div
         style={{ width: isCollapsed ? 0 : sidebarWidth }}
-        className={`flex flex-col bg-slate-900 z-10 flex-shrink-0 relative transition-all duration-75 ease-linear 
+        className={`flex flex-col bg-[#f3f3f4] z-10 flex-shrink-0 relative transition-all duration-75 ease-linear 
           ${isResizing ? "pointer-events-none select-none" : ""}
-          ${isCollapsed ? "border-none" : "border-r border-slate-800"} 
+          ${isCollapsed ? "border-none" : "border-r border-gray-200"} 
         `}
       >
-        {/* Only render content if NOT collapsed */}
         {!isCollapsed && (
           <>
-            <div className="h-12 flex items-center justify-between px-3 border-b border-slate-800 shrink-0 overflow-hidden">
-              <div className="flex items-center gap-2 text-blue-400 font-bold text-sm truncate">
+            <div className="h-12 flex items-center justify-between px-3 border-b border-gray-200 shrink-0 overflow-hidden bg-[#f3f3f4]">
+              <div className="flex items-center gap-2 font-bold text-md truncate text-gray-700">
                 <Database size={18} />
-                <span className="hidden sm:inline">SchemaVis</span>
+                <span className="hidden sm:inline">SCHEMA</span>
               </div>
               <div className="flex gap-2 items-center">
-                {/* Save Button */}
                 <button
                   onClick={handleSave}
                   disabled={isSaving || readOnly}
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   title="Save changes"
                 >
                   {isSaving ? (
-                    <Loader2 size={14} className="animate-spin" />
+                    <Loader2 size={20} className="animate-spin" />
                   ) : (
-                    <Save size={14} />
+                    <Save size={20} />
                   )}
-                  {isSaving ? "Saving" : "Update"}
+                  {isSaving ? "Saving" : ""}
                 </button>
 
-                <div className="h-4 w-px bg-slate-700 mx-1" />
+                <button
+                  onClick={handleCopy}
+                  className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors"
+                  title="Copy Code"
+                >
+                  {isCopied ? (
+                    <Check size={16} className="text-green-600" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
+                </button>
+
+                <div className="h-4 w-px bg-gray-300 mx-1" />
 
                 <button
                   onClick={() => setCode(initialSchema)}
                   disabled={readOnly}
-                  className="p-1.5 hover:bg-slate-800 rounded text-slate-400 disabled:opacity-30 transition-colors"
+                  className="p-1.5 hover:bg-gray-200 rounded text-gray-500 disabled:opacity-30 transition-colors"
                   title="Reset"
                 >
                   <RotateCcw size={14} />
                 </button>
                 <button
                   onClick={() => setIsCollapsed(true)}
-                  className="p-1.5 hover:bg-slate-800 rounded text-slate-400 transition-colors"
+                  className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors"
                   title="Collapse Editor"
                 >
                   <PanelLeftClose size={14} />
@@ -183,7 +206,6 @@ export const SchemaBuilder = ({
               </div>
             </div>
 
-            {/* Editor Content */}
             <div className="flex-1 overflow-hidden relative flex flex-col">
               <div className="flex-1 relative">
                 <MonacoWrapper
@@ -192,26 +214,45 @@ export const SchemaBuilder = ({
                   readOnly={readOnly}
                   schemaTables={schemaData.tables}
                   validationErrors={schemaData.errors}
+                  onCursorChange={(line, col) => setCursorPos({ line, col })}
                 />
                 {readOnly && (
-                  <div className="absolute top-2 right-4 pointer-events-none flex items-center gap-2 text-xs text-amber-500 font-mono opacity-80 z-50">
+                  <div className="absolute top-2 right-4 pointer-events-none flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200 z-50">
                     <Lock size={12} /> Read Only
                   </div>
                 )}
               </div>
-
-              {/* Error Count Footer */}
-              {schemaData.errors.length > 0 && (
-                <div className="bg-red-900/20 text-red-200 px-3 py-2 text-xs border-t border-red-900/50 flex justify-between items-center shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <span className="font-semibold">
-                      {schemaData.errors.length} Issue
-                      {schemaData.errors.length > 1 ? "s" : ""} found
-                    </span>
-                  </div>
+              <div className="bg-[#f3f3f4] border-t border-gray-200 flex justify-between items-center px-3 py-1 text-xs shrink-0 h-8 gap-4">
+                {/* Left: Validation Status */}
+                <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
+                  {firstError ? (
+                    <div
+                      className="flex items-center gap-2 text-red-600 truncate"
+                      title={firstError.message}
+                    >
+                      <AlertCircle size={14} className="shrink-0" />
+                      <span className="font-semibold truncate">
+                        Error on Line {firstError.startLineNumber}:{" "}
+                        {firstError.message}
+                        {schemaData.errors.length > 1 &&
+                          ` (+${schemaData.errors.length - 1} more)`}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle2 size={14} />
+                      <span className="font-medium">Schema Valid</span>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Right: Cursor Info — Only shown when there is NO error */}
+                {!firstError && (
+                  <div className="text-gray-500 font-mono shrink-0 pl-3 border-l border-gray-300">
+                    Ln {cursorPos.line}, Col {cursorPos.col}
+                  </div>
+                )}
+              </div>{" "}
             </div>
           </>
         )}
@@ -220,19 +261,19 @@ export const SchemaBuilder = ({
       {/* 2. DRAG HANDLE */}
       {!isCollapsed && (
         <div
-          className="w-1 bg-slate-800 hover:bg-blue-500 cursor-col-resize z-20 flex items-center justify-center group transition-colors delay-75 hover:delay-0 active:bg-blue-600"
+          className="w-1 bg-gray-200 hover:bg-gray-400 cursor-col-resize z-20 flex items-center justify-center group transition-colors delay-75 hover:delay-0 active:bg-blue-600 border-l border-gray-300"
           onMouseDown={startResizing}
         >
-          <div className="h-8 w-1 bg-slate-600 rounded-full group-hover:bg-white transition-colors" />
+          <div className="h-8 w-1 bg-gray-300 rounded-full group-hover:bg-white transition-colors" />
         </div>
       )}
 
       {/* 3. VISUALIZER */}
-      <div className="flex-1 h-full min-w-0 relative bg-slate-950">
+      <div className="flex-1 h-full min-w-0 relative bg-gray-50">
         {isCollapsed && (
           <button
             onClick={() => setIsCollapsed(false)}
-            className="absolute top-4 left-4 z-50 bg-slate-800 border border-slate-700 text-slate-300 p-2 rounded-lg shadow-xl hover:bg-slate-700 hover:text-white transition-all hover:scale-105 active:scale-95"
+            className="absolute top-4 left-4 z-50 bg-white border border-gray-200 text-gray-600 p-2 rounded-lg shadow-md hover:bg-gray-50 hover:text-gray-900 transition-all hover:scale-105 active:scale-95"
             title="Expand Editor"
           >
             <PanelLeftOpen size={20} />
@@ -247,7 +288,6 @@ export const SchemaBuilder = ({
         />
       </div>
 
-      {/* Overlay for resizing */}
       {isResizing && (
         <div className="fixed inset-0 z-[9999] cursor-col-resize" />
       )}

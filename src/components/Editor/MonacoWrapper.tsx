@@ -3,7 +3,7 @@ import Editor, { Monaco, OnMount } from "@monaco-editor/react";
 import { SchemaError, SchemaTable } from "@schema-viz/lib/types";
 import { Loader2 } from "lucide-react";
 import type { editor, IDisposable, languages, Position } from "monaco-editor";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
 interface MonacoWrapperProps {
   value: string;
@@ -11,6 +11,7 @@ interface MonacoWrapperProps {
   readOnly?: boolean;
   schemaTables?: SchemaTable[];
   validationErrors?: SchemaError[];
+  onCursorChange?: (line: number, col: number) => void; // NEW PROP
 }
 
 export const MonacoWrapper = ({
@@ -19,6 +20,7 @@ export const MonacoWrapper = ({
   readOnly,
   schemaTables = [],
   validationErrors = [],
+  onCursorChange,
 }: MonacoWrapperProps) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -61,7 +63,7 @@ export const MonacoWrapper = ({
       const model = editorRef.current.getModel();
       if (model) {
         const markers = validationErrors.map((err) => ({
-          severity: 8, 
+          severity: 8,
           message: err.message,
           startLineNumber: err.startLineNumber,
           startColumn: err.startColumn,
@@ -158,14 +160,26 @@ export const MonacoWrapper = ({
   const handleMount: OnMount = (editorInstance, monacoInstance) => {
     editorRef.current = editorInstance;
     monacoRef.current = monacoInstance;
-    monacoInstance.editor.defineTheme("custom-dark", {
-      base: "vs-dark",
+
+    monacoInstance.editor.defineTheme("custom-light", {
+      base: "vs",
       inherit: true,
       rules: [],
-      colors: { "editor.background": "#0f172a" },
+      colors: {
+        "editor.background": "#f3f3f4",
+        "editor.lineHighlightBackground": "#e5e7eb",
+      },
     });
-    monacoInstance.editor.setTheme("custom-dark");
+    monacoInstance.editor.setTheme("custom-light");
+
     updateDecorations(editorInstance, monacoInstance, value);
+
+    // Track Cursor Position
+    if (onCursorChange) {
+      editorInstance.onDidChangeCursorPosition((e) => {
+        onCursorChange(e.position.lineNumber, e.position.column);
+      });
+    }
   };
 
   useEffect(() => {
@@ -182,7 +196,7 @@ export const MonacoWrapper = ({
 
   return (
     <div className="h-full w-full relative">
-      <style>{`.metadata-token { color: #f472b6 !important; font-weight: bold; font-style: normal !important; }`}</style>
+      <style>{`.metadata-token { color: #d946ef !important; font-weight: bold; font-style: normal !important; }`}</style>
       <Editor
         height="100%"
         width="100%"
@@ -190,13 +204,13 @@ export const MonacoWrapper = ({
         value={value}
         onChange={handleChange}
         onMount={handleMount}
-        loading={<Loader2 className="animate-spin text-blue-500" />}
+        loading={<Loader2 className="animate-spin" />}
         options={{
           automaticLayout: true,
           readOnly,
           minimap: { enabled: false },
           fontSize: 14,
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "'Inter', monospace",
           scrollBeyondLastLine: false,
           padding: { top: 16, bottom: 16 },
           suggest: { showKeywords: false },

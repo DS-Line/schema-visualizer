@@ -1,7 +1,4 @@
 "use client";
-
-import { useCallback, useEffect, useMemo } from "react";
-
 import {
   Background,
   Connection,
@@ -14,12 +11,11 @@ import {
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
-
 import "@xyflow/react/dist/style.css";
+import React, { useCallback, useEffect, useMemo } from "react";
 
 import { getLayoutedElements } from "@schema-viz/lib/layout";
 import { AppNode, SchemaData, SchemaRef } from "@schema-viz/lib/types";
-
 import { CustomEdge } from "./CustomEdge";
 import { CustomNode } from "./CustomNode";
 
@@ -60,10 +56,10 @@ export const Canvas = ({
       targetHandle: ref.toCol,
       animated: false,
       deletable: !readOnly && !ref.isSystem,
-      style: { stroke: ref.isSystem ? "#475569" : "#3b82f6", strokeWidth: 2 },
+      style: { stroke: ref.isSystem ? "#94a3b8" : "#3b82f6", strokeWidth: 2 },
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: ref.isSystem ? "#475569" : "#3b82f6",
+        color: ref.isSystem ? "#94a3b8" : "#3b82f6",
       },
       data: {
         isDeletable: !readOnly && !ref.isSystem,
@@ -115,7 +111,7 @@ export const Canvas = ({
   );
 
   return (
-    <div className="flex-1 h-full bg-slate-950 relative group">
+    <div className="flex-1 h-full bg-gray-50 relative group">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -131,27 +127,18 @@ export const Canvas = ({
         nodesConnectable={!readOnly}
         elementsSelectable={!readOnly}
         proOptions={{ hideAttribution: true }}
-        className="bg-slate-950"
+        className="bg-gray-50"
       >
-        <Background color="#334155" gap={20} size={1} />
+        <Background color="#fefefe" />
 
         <Controls
           showInteractive={false}
-          className="shadow-xl"
-          style={
-            {
-              // Force React Flow to use Dark Mode colors for the buttons
-              "--xy-controls-button-background-color": "#1e293b", // bg-slate-800
-              "--xy-controls-button-background-color-hover": "#334155", // hover:bg-slate-700
-              "--xy-controls-button-color": "#cbd5e1", // text-slate-300
-              "--xy-controls-button-border-color": "#334155", // border-slate-700
-            } as React.CSSProperties
-          }
+          className="bg-white border-gray-200 shadow-md fill-gray-600"
         />
       </ReactFlow>
 
       {readOnly && (
-        <div className="absolute top-4 left-4 z-50 bg-slate-900/80 border border-amber-500/50 text-amber-500 px-3 py-1.5 rounded-full text-xs font-bold pointer-events-none backdrop-blur-sm flex items-center gap-2">
+        <div className="absolute top-15 left-1 z-50 bg-white/90 border border-amber-500 text-amber-600 px-3 py-1.5 rounded-full text-xs font-bold pointer-events-none backdrop-blur-sm flex items-center gap-2 shadow-sm">
           <span>Locked</span>
         </div>
       )}

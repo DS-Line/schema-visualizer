@@ -50,7 +50,7 @@ export const CustomEdge = ({
             className="opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity"
           >
             <button
-              className="bg-slate-900 border border-red-500 rounded-full p-1 text-red-500 hover:bg-red-500 hover:text-white transition-colors shadow-sm cursor-pointer"
+              className="bg-gray-100 border border-red-500 rounded-full p-1 text-red-500 hover:bg-red-500 hover:text-white transition-colors shadow-sm cursor-pointer"
               onClick={onEdgeClick}
               title="Delete Relationship"
             >
