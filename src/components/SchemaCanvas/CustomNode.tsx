@@ -3,7 +3,6 @@ import { CustomNodeType } from "@schema-viz/lib/types";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import {
   ArrowDownToLine,
-  Database,
   Eye,
   Key,
   Link as LinkIcon,
