@@ -7,6 +7,7 @@ import {
   Eye,
   Key,
   Link as LinkIcon,
+  PanelsTopLeft,
 } from "lucide-react";
 import { memo } from "react";
 
@@ -36,11 +37,11 @@ export const CustomNode = memo(
       `}
         >
           {isView ? (
-            <Eye size={14} className="text-teal-400" />
+            <Eye size={14} className="text-gray-100" />
           ) : (
-            <Database size={14} className="text-blue-400" />
+            <PanelsTopLeft size={14} className="text-gray-100" />
           )}
-          <span className="font-bold text-slate-100 truncate pointer-events-none">
+          <span className="text-slate-100 truncate pointer-events-none">
             {table.name}
           </span>
         </div>

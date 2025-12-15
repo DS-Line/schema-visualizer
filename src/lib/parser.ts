@@ -1,4 +1,10 @@
-import { SchemaCol, SchemaData, SchemaError, SchemaRef, SchemaTable } from "./types";
+import {
+  SchemaCol,
+  SchemaData,
+  SchemaError,
+  SchemaRef,
+  SchemaTable,
+} from "./types";
 
 // Convert character index to Line/Column
 const getLinePos = (text: string, index: number) => {
@@ -23,7 +29,11 @@ const parseColumns = (body: string): SchemaCol[] => {
         return null;
 
       const name = parts[0].replace(/["`]/g, "");
-      const type = parts.slice(1).join(" ").split(/(\s+)/)[0].replace(",", "");
+      const type =
+        parts
+          .slice(1)
+          .join(" ")
+          .match(/^[A-Z_]+/i)?.[0] ?? "";
       const isPk = /PRIMARY KEY/i.test(colStr);
 
       return { name, type, isPk, isFk: false };
