@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Background,
   Connection,
@@ -11,11 +12,14 @@ import {
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
+
 import "@xyflow/react/dist/style.css";
-import React, { useCallback, useEffect, useMemo } from "react";
+
+import { useCallback, useEffect, useMemo } from "react";
 
 import { getLayoutedElements } from "@schema-viz/lib/layout";
 import { AppNode, SchemaData, SchemaRef } from "@schema-viz/lib/types";
+
 import { CustomEdge } from "./CustomEdge";
 import { CustomNode } from "./CustomNode";
 
@@ -24,6 +28,7 @@ interface CanvasProps {
   onAddRef: (refStr: string) => void;
   onRemoveRef: (ref: SchemaRef) => void;
   readOnly?: boolean;
+  defaultZoom?: number;
 }
 
 export const Canvas = ({
@@ -31,6 +36,7 @@ export const Canvas = ({
   onAddRef,
   onRemoveRef,
   readOnly,
+  defaultZoom,
 }: CanvasProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -38,6 +44,8 @@ export const Canvas = ({
   const nodeTypes = useMemo<NodeTypes>(() => ({ customTable: CustomNode }), []);
   const edgeTypes = useMemo<EdgeTypes>(() => ({ customEdge: CustomEdge }), []);
 
+  // in react flow, fitView overrides defaultViewport, so only fitView when no defaultZoom is provided
+  const shouldFitView = defaultZoom === undefined;
   useEffect(() => {
     const flowNodes: AppNode[] = data.tables.map((table) => ({
       id: table.name,
@@ -120,8 +128,11 @@ export const Canvas = ({
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        fitView
-        minZoom={0.2}
+        fitView={shouldFitView}
+        defaultViewport={
+          defaultZoom ? { x: 25, y: 75, zoom: defaultZoom } : undefined
+        }
+        minZoom={0.1}
         maxZoom={2}
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
@@ -138,7 +149,7 @@ export const Canvas = ({
       </ReactFlow>
 
       {readOnly && (
-        <div className="absolute top-15 left-1 z-50 bg-white/90 border border-amber-500 text-amber-600 px-3 py-1.5 rounded-full text-xs font-bold pointer-events-none backdrop-blur-sm flex items-center gap-2 shadow-sm">
+        <div className="absolute top-4 right-4 z-50 bg-white/90 border border-amber-500 text-amber-600 px-3 py-1.5 rounded-full text-xs font-bold pointer-events-none backdrop-blur-sm flex items-center gap-2 shadow-sm">
           <span>Locked</span>
         </div>
       )}

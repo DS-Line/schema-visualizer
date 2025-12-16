@@ -47,6 +47,8 @@ interface SchemaBuilderProps {
   initialSchema: string;
   onSave: (schema: string) => Promise<void>;
   readOnly?: boolean;
+  defaultCollapsed?: boolean;
+  defaultZoom?: number;
 }
 
 const MIN_SIDEBAR_WIDTH = 300;
@@ -57,6 +59,8 @@ export const SchemaBuilder = ({
   initialSchema,
   onSave,
   readOnly = false,
+  defaultCollapsed = false,
+  defaultZoom,
 }: SchemaBuilderProps) => {
   const [code, setCode] = useState<string>(initialSchema);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -67,7 +71,7 @@ export const SchemaBuilder = ({
   });
 
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -142,7 +146,7 @@ export const SchemaBuilder = ({
   return (
     <div
       ref={sidebarRef}
-      className="flex flex-row h-full w-full bg-white text-gray-800 font-sans overflow-hidden border border-gray-200 rounded-lg shadow-sm relative select-none"
+      className="flex flex-row h-full w-full bg-white text-gray-800 font-sans overflow-hidden border border-gray-200 shadow-sm relative select-none"
     >
       {/* 1. LEFT SIDEBAR */}
       <div
@@ -285,6 +289,7 @@ export const SchemaBuilder = ({
           onAddRef={(ref) => setCode((prev) => prev + ref)}
           onRemoveRef={handleRemoveRef}
           readOnly={readOnly}
+          defaultZoom={defaultZoom}
         />
       </div>
 
