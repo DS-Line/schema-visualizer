@@ -1,19 +1,21 @@
 "use client";
+
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
   AlertCircle,
   Check,
-  CheckCircle2,
   Copy,
   Database,
+  ListRestart,
   Loader2,
-  Lock,
   PanelLeftClose,
   PanelLeftOpen,
   RotateCcw,
   Save,
 } from "lucide-react";
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { parseSchema } from "./lib/parser";
 import { SchemaRef } from "./lib/types";
 
@@ -49,6 +51,8 @@ interface SchemaBuilderProps {
   readOnly?: boolean;
   defaultCollapsed?: boolean;
   defaultZoom?: number;
+  onGenerate?: () => void;
+  isGenerating?: boolean;
 }
 
 const MIN_SIDEBAR_WIDTH = 300;
@@ -61,6 +65,8 @@ export const SchemaBuilder = ({
   readOnly = false,
   defaultCollapsed = false,
   defaultZoom,
+  onGenerate,
+  isGenerating = false,
 }: SchemaBuilderProps) => {
   const [code, setCode] = useState<string>(initialSchema);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -76,6 +82,13 @@ export const SchemaBuilder = ({
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const schemaData = useMemo(() => parseSchema(code), [code]);
+
+  useEffect(() => {
+    if (initialSchema !== undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCode(initialSchema);
+    }
+  }, [initialSchema]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -106,6 +119,10 @@ export const SchemaBuilder = ({
     },
     [readOnly]
   );
+
+  const handleCursorChange = useCallback((line: number, col: number) => {
+    setCursorPos({ line, col });
+  }, []);
 
   const startResizing = useCallback(() => setIsResizing(true), []);
   const stopResizing = useCallback(() => setIsResizing(false), []);
@@ -142,6 +159,10 @@ export const SchemaBuilder = ({
   }, [isResizing, resize, stopResizing]);
 
   const firstError = schemaData.errors[0];
+  const hasContent = code.trim().length > 0;
+  const hasErrors = schemaData.errors.length > 0;
+
+  const canSave = hasContent && !hasErrors && !isSaving && !isGenerating;
 
   return (
     <div
@@ -159,25 +180,73 @@ export const SchemaBuilder = ({
         {!isCollapsed && (
           <>
             <div className="h-12 flex items-center justify-between px-3 border-b border-gray-200 shrink-0 overflow-hidden bg-[#f2f2ed]">
-              <div className="flex items-center gap-2 font-bold text-md truncate text-gray-700">
-                <Database size={18} />
+              <div className="flex items-center gap-2 text-md truncate text-gray-700">
+                <Database size={20} />
                 <span className="hidden sm:inline">SCHEMA</span>
               </div>
               <div className="flex gap-2 items-center">
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving || readOnly || firstError !== undefined}
-                  className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Save changes"
-                >
-                  {isSaving ? (
-                    <Loader2 size={20} className="animate-spin" />
-                  ) : (
-                    <Save size={20} />
-                  )}
-                  {isSaving ? "Saving" : ""}
-                </button>
+                {" "}
+                {readOnly ? (
+                  <>
+                    <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded border border-amber-200 uppercase tracking-wide cursor-default">
+                      Read Only
+                    </span>
+                    <div className="h-4 w-px bg-gray-300 mx-1" />
+                  </>
+                ) : (
+                  <>
+                    {onGenerate && (
+                      <button
+                        onClick={onGenerate}
+                        disabled={isGenerating || isSaving}
+                        className="p-1.5 hover:bg-gray-200 rounded text-gray-500 disabled:opacity-30 transition-colors"
+                        title={
+                          hasContent ? "Regenerate Schema" : "Generate Schema"
+                        }
+                      >
+                        {isGenerating ? (
+                          <Loader2
+                            size={16}
+                            className="animate-spin text-blue-600"
+                          />
+                        ) : (
+                          <ListRestart size={16} />
+                        )}
+                      </button>
+                    )}
 
+                    <button
+                      onClick={handleSave}
+                      disabled={!canSave}
+                      className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center
+             disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title={
+                        !hasContent
+                          ? "Schema cannot be empty"
+                          : hasErrors
+                          ? "Fix schema errors before saving"
+                          : "Save changes"
+                      }
+                    >
+                      {isSaving ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Save size={16} />
+                      )}
+                      {isSaving ? "Saving" : ""}
+                    </button>
+
+                    <div className="h-4 w-px bg-gray-300 mx-1" />
+
+                    <button
+                      onClick={() => setCode(initialSchema)}
+                      className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors"
+                      title="Reset to original"
+                    >
+                      <RotateCcw size={16} />
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={handleCopy}
                   className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors"
@@ -189,23 +258,12 @@ export const SchemaBuilder = ({
                     <Copy size={16} />
                   )}
                 </button>
-
-                <div className="h-4 w-px bg-gray-300 mx-1" />
-
-                <button
-                  onClick={() => setCode(initialSchema)}
-                  disabled={readOnly}
-                  className="p-1.5 hover:bg-gray-200 rounded text-gray-500 disabled:opacity-30 transition-colors"
-                  title="Reset"
-                >
-                  <RotateCcw size={14} />
-                </button>
                 <button
                   onClick={() => setIsCollapsed(true)}
                   className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors"
                   title="Collapse Editor"
                 >
-                  <PanelLeftClose size={14} />
+                  <PanelLeftClose size={16} />
                 </button>
               </div>
             </div>
@@ -218,41 +276,39 @@ export const SchemaBuilder = ({
                   readOnly={readOnly}
                   schemaTables={schemaData.tables}
                   validationErrors={schemaData.errors}
-                  onCursorChange={(line, col) => setCursorPos({ line, col })}
+                  onCursorChange={handleCursorChange}
                 />
-                {readOnly && (
-                  <div className="absolute top-2 right-4 pointer-events-none flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200 z-50">
-                    <Lock size={12} /> Read Only
-                  </div>
-                )}
               </div>
               <div className="bg-[#f2f2ed] border-t border-gray-200 flex justify-between items-center px-3 py-1 text-xs shrink-0 h-8 gap-4">
-                {/* Left: Validation Status */}
                 <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
-                  {firstError ? (
+                  {(!hasContent || firstError) && (
                     <div
                       className="flex items-center gap-2 text-red-600 truncate"
-                      title={firstError.message}
+                      title={
+                        firstError
+                          ? firstError.message
+                          : "Schema cannot be empty"
+                      }
                     >
-                      <AlertCircle size={14} className="shrink-0" />
+                      <AlertCircle size={16} className="shrink-0" />
                       <span className="font-semibold truncate">
-                        Error on Line {firstError.startLineNumber}:{" "}
-                        {firstError.message}
-                        {schemaData.errors.length > 1 &&
-                          ` (+${schemaData.errors.length - 1} more)`}
+                        {!hasContent
+                          ? "Schema can’t be empty"
+                          : `Error on Line ${firstError.startLineNumber}: ${
+                              firstError.message
+                            } ${
+                              schemaData.errors.length > 1
+                                ? `(+${schemaData.errors.length - 1} more)`
+                                : ""
+                            }`}
                       </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle2 size={14} />
-                      <span className="font-medium">Schema Valid</span>
                     </div>
                   )}
                 </div>
 
-                {/* Right: Cursor Info — Only shown when there is NO error */}
+                {/* Cursor Info — Only shown when there is NO error */}
                 {!firstError && (
-                  <div className="text-gray-500 font-mono shrink-0 pl-3 border-l border-gray-300">
+                  <div className="text-gray-500 font-mono shrink-0 pl-3">
                     Ln {cursorPos.line}, Col {cursorPos.col}
                   </div>
                 )}
@@ -280,7 +336,7 @@ export const SchemaBuilder = ({
             className="absolute top-4 left-4 z-50 bg-white border border-gray-200 text-gray-600 p-2 rounded-lg shadow-md hover:bg-gray-50 hover:text-gray-900 transition-all hover:scale-105 active:scale-95"
             title="Expand Editor"
           >
-            <PanelLeftOpen size={20} />
+            <PanelLeftOpen size={16} />
           </button>
         )}
 

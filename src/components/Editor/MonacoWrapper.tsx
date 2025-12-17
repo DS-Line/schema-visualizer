@@ -1,9 +1,11 @@
 "use client";
+
+import { useEffect, useRef } from "react";
+
 import Editor, { Monaco, OnMount } from "@monaco-editor/react";
 import { SchemaError, SchemaTable } from "@schema-viz/lib/types";
 import { Loader2 } from "lucide-react";
 import type { editor, IDisposable, languages, Position } from "monaco-editor";
-import React, { useEffect, useRef } from "react";
 
 interface MonacoWrapperProps {
   value: string;

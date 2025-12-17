@@ -150,7 +150,7 @@ export const Canvas = ({
 
       {readOnly && (
         <div className="absolute top-4 right-4 z-50 bg-white/90 border border-amber-500 text-amber-600 px-3 py-1.5 rounded-full text-xs font-bold pointer-events-none backdrop-blur-sm flex items-center gap-2 shadow-sm">
-          <span>Locked</span>
+          <span>Read Only</span>
         </div>
       )}
     </div>
