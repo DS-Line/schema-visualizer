@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   AlertCircle,
+  AlertTriangle,
   Check,
   Copy,
   Database,
@@ -17,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { parseSchema } from "./lib/parser";
-import { SchemaRef } from "./lib/types";
+import { SchemaError, SchemaRef } from "./lib/types";
 
 const MonacoWrapper = dynamic(
   () =>
@@ -51,8 +52,11 @@ interface SchemaBuilderProps {
   readOnly?: boolean;
   defaultCollapsed?: boolean;
   defaultZoom?: number;
-  onGenerate?: () => void;
+  onGenerate?: (hasContent: boolean) => void;
   isGenerating?: boolean;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onCodeChange?: (code: string) => void;
+  onErrorChange?: (errors: SchemaError[]) => void;
 }
 
 const MIN_SIDEBAR_WIDTH = 300;
@@ -67,6 +71,9 @@ export const SchemaBuilder = ({
   defaultZoom,
   onGenerate,
   isGenerating = false,
+  onDirtyChange,
+  onCodeChange,
+  onErrorChange,
 }: SchemaBuilderProps) => {
   const [code, setCode] = useState<string>(initialSchema);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -75,6 +82,8 @@ export const SchemaBuilder = ({
     line: 1,
     col: 1,
   });
+
+  const [isDirty, setIsDirty] = useState(false);
 
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
@@ -85,10 +94,41 @@ export const SchemaBuilder = ({
 
   useEffect(() => {
     if (initialSchema !== undefined) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCode(initialSchema);
+      setIsDirty(false);
+      if (onDirtyChange) onDirtyChange(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSchema]);
+
+  const hasContent = code.trim().length > 0;
+  // schema throws empty warning only if the initial schema was not empty
+  const isInvalidEmpty =
+    !hasContent && (isDirty || initialSchema.trim().length > 0);
+
+  // Combine parser errors with the potential empty error
+  const effectiveErrors = useMemo(() => {
+    const errs = [...schemaData.errors];
+    if (isInvalidEmpty) {
+      errs.unshift({
+        message: "Schema cannot be empty",
+        startLineNumber: 1,
+        startColumn: 1,
+        endLineNumber: 1,
+        endColumn: 1,
+      });
+    }
+    return errs;
+  }, [schemaData.errors, isInvalidEmpty]);
+
+  useEffect(() => {
+    const dirty = code !== initialSchema;
+    setIsDirty(dirty);
+    if (onDirtyChange) onDirtyChange(dirty);
+    if (onCodeChange) onCodeChange(code);
+    if (onErrorChange) onErrorChange(effectiveErrors); // Send combined errors to parent
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, initialSchema, effectiveErrors]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -158,11 +198,10 @@ export const SchemaBuilder = ({
     };
   }, [isResizing, resize, stopResizing]);
 
-  const firstError = schemaData.errors[0];
-  const hasContent = code.trim().length > 0;
-  const hasErrors = schemaData.errors.length > 0;
-
-  const canSave = hasContent && !hasErrors && !isSaving && !isGenerating;
+  const firstError = effectiveErrors[0];
+  const hasErrors = effectiveErrors.length > 0;
+  const canSave =
+    hasContent && !hasErrors && !isSaving && !isGenerating && isDirty;
 
   return (
     <div
@@ -197,7 +236,7 @@ export const SchemaBuilder = ({
                   <>
                     {onGenerate && (
                       <button
-                        onClick={onGenerate}
+                        onClick={() => onGenerate(hasContent)}
                         disabled={isGenerating || isSaving}
                         className="p-1.5 hover:bg-gray-200 rounded text-gray-500 disabled:opacity-30 transition-colors"
                         title={
@@ -221,10 +260,12 @@ export const SchemaBuilder = ({
                       className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center
              disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title={
-                        !hasContent
+                        isInvalidEmpty
                           ? "Schema cannot be empty"
                           : hasErrors
                           ? "Fix schema errors before saving"
+                          : !isDirty
+                          ? "No changes to save"
                           : "Save changes"
                       }
                     >
@@ -240,6 +281,7 @@ export const SchemaBuilder = ({
 
                     <button
                       onClick={() => setCode(initialSchema)}
+                      disabled={!isDirty}
                       className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors"
                       title="Reset to original"
                     >
@@ -275,34 +317,33 @@ export const SchemaBuilder = ({
                   onChange={setCode}
                   readOnly={readOnly}
                   schemaTables={schemaData.tables}
-                  validationErrors={schemaData.errors}
+                  validationErrors={effectiveErrors}
                   onCursorChange={handleCursorChange}
                 />
               </div>
+              {/* FOOTER */}
               <div className="bg-[#f2f2ed] border-t border-gray-200 flex justify-between items-center px-3 py-1 text-xs shrink-0 h-8 gap-4">
                 <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
-                  {(!hasContent || firstError) && (
+                  {firstError ? (
                     <div
                       className="flex items-center gap-2 text-red-600 truncate"
-                      title={
-                        firstError
-                          ? firstError.message
-                          : "Schema cannot be empty"
-                      }
+                      title={firstError.message}
                     >
                       <AlertCircle size={16} className="shrink-0" />
                       <span className="font-semibold truncate">
-                        {!hasContent
-                          ? "Schema can’t be empty"
-                          : `Error on Line ${firstError.startLineNumber}: ${
-                              firstError.message
-                            } ${
-                              schemaData.errors.length > 1
-                                ? `(+${schemaData.errors.length - 1} more)`
-                                : ""
-                            }`}
+                        {firstError.message === "Schema cannot be empty"
+                          ? "Schema can't be empty"
+                          : `Error on Line ${firstError.startLineNumber}: ${firstError.message}`}
+                        {effectiveErrors.length > 1 &&
+                          ` (+${effectiveErrors.length - 1} more)`}
                       </span>
                     </div>
+                  ) : (
+                    isDirty && (
+                      <div className="flex items-center gap-2 text-amber-600 font-semibold animate-in fade-in">
+                        <AlertTriangle size={16} /> Unsaved Changes
+                      </div>
+                    )
                   )}
                 </div>
 
