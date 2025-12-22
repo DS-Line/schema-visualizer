@@ -54,7 +54,7 @@ export const CustomNode = memo(
           )}
 
           {table.columns.map((col) => {
-            // Robust Set check
+            // No repeated connections
             const isFetched =
               fetchedCols instanceof Set
                 ? fetchedCols.has(`${table.name}.${col.name}`)

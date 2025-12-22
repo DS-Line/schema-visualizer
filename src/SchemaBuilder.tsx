@@ -126,7 +126,7 @@ export const SchemaBuilder = ({
     setIsDirty(dirty);
     if (onDirtyChange) onDirtyChange(dirty);
     if (onCodeChange) onCodeChange(code);
-    if (onErrorChange) onErrorChange(effectiveErrors); // Send combined errors to parent
+    if (onErrorChange) onErrorChange(effectiveErrors);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, initialSchema, effectiveErrors]);
 
@@ -208,7 +208,7 @@ export const SchemaBuilder = ({
       ref={sidebarRef}
       className="flex flex-row h-full w-full bg-white text-gray-800 font-sans overflow-hidden border border-gray-200 shadow-sm relative select-none"
     >
-      {/* 1. LEFT SIDEBAR */}
+      {/* LEFT SIDEBAR */}
       <div
         style={{ width: isCollapsed ? 0 : sidebarWidth }}
         className={`flex flex-col bg-[#f2f2ed] z-10 flex-shrink-0 relative transition-all duration-75 ease-linear 
@@ -359,7 +359,7 @@ export const SchemaBuilder = ({
         )}
       </div>
 
-      {/* 2. DRAG HANDLE */}
+      {/* DRAG HANDLE */}
       {!isCollapsed && (
         <div
           className="w-1 bg-gray-200 hover:bg-gray-400 cursor-col-resize z-20 flex items-center justify-center group transition-colors delay-75 hover:delay-0 active:bg-blue-600 border-l border-gray-300"
@@ -369,7 +369,7 @@ export const SchemaBuilder = ({
         </div>
       )}
 
-      {/* 3. VISUALIZER */}
+      {/* VISUALIZER */}
       <div className="flex-1 h-full min-w-0 relative bg-gray-50">
         {isCollapsed && (
           <button

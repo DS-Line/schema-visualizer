@@ -218,7 +218,7 @@ export const MonacoWrapper = ({
           suggest: { showKeywords: false },
           unicodeHighlight: {
             invisibleCharacters: false,
-            ambiguousCharacters: false, // Helps with weird quote marks from blogs
+            ambiguousCharacters: false, // Helps with weird quote marks
           },
         }}
       />

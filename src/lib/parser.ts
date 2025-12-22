@@ -88,7 +88,7 @@ export const parseSchema = (text: string): SchemaData => {
     .replace(/--.*$/gm, (m) => " ".repeat(m.length))
     .replace(/\/\*[\s\S]*?\*\//g, (m) => " ".repeat(m.length));
 
-  // 1. Tables
+  // Tables
   const tableRegex =
     /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF NOT EXISTS\s+)?["`]?(\w+)["`]?\s*\(([^;]+)\);?/gi;
   let match;
@@ -100,7 +100,7 @@ export const parseSchema = (text: string): SchemaData => {
     });
   }
 
-  // 2. Views
+  // Views
   const viewRegex =
     /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+["`]?(\w+)["`]?\s*(?:\(([^)]+)\))?\s*AS\s+([\s\S]+?)(?:;|$)/gi;
   while ((match = viewRegex.exec(maskedText)) !== null) {
@@ -109,7 +109,7 @@ export const parseSchema = (text: string): SchemaData => {
     tables.push({ name: match[1], columns: columns, type: "view" });
   }
 
-  // 3. System Refs
+  // System Refs
   const sqlRefRegex =
     /ALTER TABLE\s+["`]?(\w+)["`]?\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN KEY\s*\((["`]?\w+["`]?)\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\((["`]?\w+["`]?)\)/gi;
   while ((match = sqlRefRegex.exec(maskedText)) !== null) {
@@ -123,7 +123,7 @@ export const parseSchema = (text: string): SchemaData => {
     });
   }
 
-  // 4. User Refs & Validation
+  // User Refs & Validation
   const userRefRegex =
     /--\s*Ref:\s*(\w+)["`]?\.["`]?(\w+)["`]?\s*[>=<\-]\s*(\w+)["`]?\.["`]?(\w+)["`]?/gi;
   while ((match = userRefRegex.exec(text)) !== null) {
@@ -141,7 +141,7 @@ export const parseSchema = (text: string): SchemaData => {
       isSystem: false,
     });
 
-    // --- Validation Logic ---
+    // Validation Logic
     const fromT = tables.find((t) => t.name === fromTable);
     const toT = tables.find((t) => t.name === toTable);
     let errorMsg = null;
@@ -169,13 +169,13 @@ export const parseSchema = (text: string): SchemaData => {
     }
   }
 
-  // 5. Fetch
+  // Fetch
   const fetchRegex = /--\s*fetch:\s*\[([^\]]+)\]/gi;
   while ((match = fetchRegex.exec(text)) !== null) {
     match[1].split(",").forEach((i) => fetchedCols.add(i.trim()));
   }
 
-  // 6. Post-process FK flags
+  // Post-process FK flags
   refs.forEach((ref) => {
     const fromT = tables.find((t) => t.name === ref.fromTable);
     if (fromT && fromT.type === "table") {

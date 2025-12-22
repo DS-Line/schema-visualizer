@@ -21,7 +21,7 @@ export const getLayoutedElements = (
   // 'LR' (Left-to-Right) or 'TB' (Top-to-Bottom)
   dagreGraph.setGraph({ rankdir: "LR" });
 
-  // 1. Separate Connected vs Isolated Nodes
+  // Separate Connected vs Isolated Nodes
   const connectedNodeIds = new Set<string>();
   edges.forEach((edge) => {
     connectedNodeIds.add(edge.source);
@@ -38,7 +38,6 @@ export const getLayoutedElements = (
       isolatedNodes.push(node);
     }
   });
-
 
   connectedNodes.forEach((node) => {
     const tableData = tables.find((t) => t.name === node.id);
