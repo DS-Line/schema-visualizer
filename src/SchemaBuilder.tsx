@@ -11,6 +11,8 @@ import {
   Database,
   ListRestart,
   Loader2,
+  Maximize2,
+  Minimize2,
   PanelLeftClose,
   PanelLeftOpen,
   RotateCcw,
@@ -78,6 +80,7 @@ export const SchemaBuilder = ({
   const [code, setCode] = useState<string>(initialSchema);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [cursorPos, setCursorPos] = useState<{ line: number; col: number }>({
     line: 1,
     col: 1,
@@ -198,6 +201,17 @@ export const SchemaBuilder = ({
     };
   }, [isResizing, resize, stopResizing]);
 
+  // Handle Escape key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullScreen) {
+        setIsFullScreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullScreen]);
+
   const firstError = effectiveErrors[0];
   const hasErrors = effectiveErrors.length > 0;
   const canSave =
@@ -206,7 +220,11 @@ export const SchemaBuilder = ({
   return (
     <div
       ref={sidebarRef}
-      className="flex flex-row h-full w-full bg-white text-gray-800 font-sans overflow-hidden border border-gray-200 shadow-sm relative select-none"
+      className={`flex flex-row bg-white text-gray-800 font-sans overflow-hidden border border-gray-200 shadow-sm select-none transition-all duration-200 ${
+        isFullScreen
+          ? "fixed inset-0 z-[9999] h-screen w-screen"
+          : "relative h-full w-full"
+      }`}
     >
       {/* LEFT SIDEBAR */}
       <div
@@ -257,8 +275,7 @@ export const SchemaBuilder = ({
                     <button
                       onClick={handleSave}
                       disabled={!canSave}
-                      className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center
-             disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title={
                         isInvalidEmpty
                           ? "Schema cannot be empty"
@@ -300,6 +317,20 @@ export const SchemaBuilder = ({
                     <Copy size={16} />
                   )}
                 </button>
+                {/* Fullscreen Toggle - Hidden in ReadOnly */}
+                {!readOnly && (
+                  <button
+                    onClick={() => setIsFullScreen(!isFullScreen)}
+                    className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors"
+                    title={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}
+                  >
+                    {isFullScreen ? (
+                      <Minimize2 size={16} />
+                    ) : (
+                      <Maximize2 size={16} />
+                    )}
+                  </button>
+                )}
                 <button
                   onClick={() => setIsCollapsed(true)}
                   className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors"
@@ -372,13 +403,25 @@ export const SchemaBuilder = ({
       {/* VISUALIZER */}
       <div className="flex-1 h-full min-w-0 relative bg-gray-50">
         {isCollapsed && (
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className="absolute top-4 left-4 z-50 bg-white border border-gray-200 text-gray-600 p-2 rounded-lg shadow-md hover:bg-gray-50 hover:text-gray-900 transition-all hover:scale-105 active:scale-95"
-            title="Expand Editor"
-          >
-            <PanelLeftOpen size={16} />
-          </button>
+          <div className="absolute top-4 left-4 z-50 flex gap-2">
+            <button
+              onClick={() => setIsCollapsed(false)}
+              className="bg-white border border-gray-200 text-gray-600 p-2 rounded-lg shadow-md hover:bg-gray-50 hover:text-gray-900 transition-all hover:scale-105 active:scale-95"
+              title="Expand Editor"
+            >
+              <PanelLeftOpen size={16} />
+            </button>
+            {/* If sidebar is collapsed and we are fullscreen, allow exiting fullscreen from here too */}
+            {isFullScreen && (
+              <button
+                onClick={() => setIsFullScreen(false)}
+                className="bg-white border border-gray-200 text-gray-600 p-2 rounded-lg shadow-md hover:bg-gray-50 hover:text-gray-900 transition-all hover:scale-105 active:scale-95"
+                title="Exit Fullscreen"
+              >
+                <Minimize2 size={16} />
+              </button>
+            )}
+          </div>
         )}
 
         <Canvas
