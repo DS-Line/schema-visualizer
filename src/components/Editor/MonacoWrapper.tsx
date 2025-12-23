@@ -197,7 +197,13 @@ export const MonacoWrapper = ({
   };
 
   return (
-    <div className="h-full w-full relative">
+    <div
+      className="h-full w-full relative"
+      onKeyDown={(e) => {
+        // Stop keys from bubbling up to the Parent App to avoid key hijacking
+        e.stopPropagation();
+      }}
+    >
       <style>{`.metadata-token { color: #c93fdfff !important; font-weight: bold; font-style: normal !important; }`}</style>
       <Editor
         height="100%"
