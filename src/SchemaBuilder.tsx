@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { parseSchema } from "./lib/parser";
-import { SchemaError, SchemaRef } from "./lib/types";
+import { SchemaError, SchemaRef, SchemaTable } from "./lib/types";
 
 const MonacoWrapper = dynamic(
   () =>
@@ -81,18 +81,18 @@ export const SchemaBuilder = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
-  const [cursorPos, setCursorPos] = useState<{ line: number; col: number }>({
-    line: 1,
-    col: 1,
-  });
-
+  const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [isDirty, setIsDirty] = useState(false);
-
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isResizing, setIsResizing] = useState(false);
-  const sidebarRef = useRef<HTMLDivElement>(null);
+  const [highlightRequest, setHighlightRequest] = useState<{
+    line: number;
+    col: number;
+    ts: number;
+  } | null>(null);
 
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const schemaData = useMemo(() => parseSchema(code), [code]);
 
   useEffect(() => {
@@ -145,7 +145,7 @@ export const SchemaBuilder = ({
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy text", err);
+      console.error("Failed to copy", err);
     }
   };
 
@@ -163,19 +163,17 @@ export const SchemaBuilder = ({
     [readOnly]
   );
 
-  const handleCursorChange = useCallback((line: number, col: number) => {
-    setCursorPos({ line, col });
+  const handleSelectElement = useCallback((item: SchemaTable | SchemaRef) => {
+    setHighlightRequest({ line: item.line, col: item.column, ts: Date.now() });
   }, []);
 
   const startResizing = useCallback(() => setIsResizing(true), []);
   const stopResizing = useCallback(() => setIsResizing(false), []);
-
   const resize = useCallback(
-    (mouseMoveEvent: MouseEvent) => {
+    (e: MouseEvent) => {
       if (isResizing && sidebarRef.current) {
         const newWidth =
-          mouseMoveEvent.clientX -
-          sidebarRef.current.getBoundingClientRect().left;
+          e.clientX - sidebarRef.current.getBoundingClientRect().left;
         if (newWidth < 100) {
           setIsCollapsed(true);
           setIsResizing(false);
@@ -201,12 +199,9 @@ export const SchemaBuilder = ({
     };
   }, [isResizing, resize, stopResizing]);
 
-  // Handle Escape key to exit fullscreen
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isFullScreen) {
-        setIsFullScreen(false);
-      }
+      if (e.key === "Escape" && isFullScreen) setIsFullScreen(false);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -340,18 +335,16 @@ export const SchemaBuilder = ({
                 </button>
               </div>
             </div>
-
-            <div className="flex-1 overflow-hidden relative flex flex-col">
-              <div className="flex-1 relative">
-                <MonacoWrapper
-                  value={code}
-                  onChange={setCode}
-                  readOnly={readOnly}
-                  schemaTables={schemaData.tables}
-                  validationErrors={effectiveErrors}
-                  onCursorChange={handleCursorChange}
-                />
-              </div>
+            <div className="flex-1 relative flex flex-col overflow-hidden">
+              <MonacoWrapper
+                value={code}
+                onChange={setCode}
+                readOnly={readOnly}
+                schemaTables={schemaData.tables}
+                validationErrors={effectiveErrors}
+                onCursorChange={(line, col) => setCursorPos({ line, col })}
+                highlightRequest={highlightRequest}
+              />
               {/* FOOTER */}
               <div className="bg-[#f2f2ed] border-t border-gray-200 flex justify-between items-center px-3 py-1 text-xs shrink-0 h-8 gap-4">
                 <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
@@ -378,7 +371,8 @@ export const SchemaBuilder = ({
                   )}
                 </div>
 
-                {/* Cursor Info — Only shown when there is NO error */}
+                {/* Cursor Info only shown when there is NO error */}
+
                 {!firstError && (
                   <div className="text-gray-500 font-mono shrink-0 pl-3">
                     Ln {cursorPos.line}, Col {cursorPos.col}
@@ -411,14 +405,17 @@ export const SchemaBuilder = ({
             >
               <PanelLeftOpen size={16} />
             </button>
-            {/* If sidebar is collapsed and we are fullscreen, allow exiting fullscreen from here too */}
-            {isFullScreen && (
+            {!readOnly && (
               <button
-                onClick={() => setIsFullScreen(false)}
+                onClick={() => setIsFullScreen(!isFullScreen)}
                 className="bg-white border border-gray-200 text-gray-600 p-2 rounded-lg shadow-md hover:bg-gray-50 hover:text-gray-900 transition-all hover:scale-105 active:scale-95"
-                title="Exit Fullscreen"
+                title={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}
               >
-                <Minimize2 size={16} />
+                {isFullScreen ? (
+                  <Minimize2 size={16} />
+                ) : (
+                  <Maximize2 size={16} />
+                )}{" "}
               </button>
             )}
           </div>
@@ -428,6 +425,7 @@ export const SchemaBuilder = ({
           data={schemaData}
           onAddRef={(ref) => setCode((prev) => prev + ref)}
           onRemoveRef={handleRemoveRef}
+          onSelectElement={handleSelectElement}
           readOnly={readOnly}
           defaultZoom={defaultZoom}
         />
