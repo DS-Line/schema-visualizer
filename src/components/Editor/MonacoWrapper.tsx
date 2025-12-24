@@ -94,7 +94,7 @@ export const MonacoWrapper = ({
 
     const timer = setTimeout(() => {
       highlightCollectionRef.current?.clear();
-    }, 2000);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [highlightRequest]);
@@ -242,7 +242,7 @@ export const MonacoWrapper = ({
     >
       <style>{`
         .metadata-token { color: #c93fdfff !important; font-weight: 500; }
-        .line-highlight-brief { background: rgba(59, 130, 246, 0.2) !important; border-left: 3px solid #3b82f6; }
+        .line-highlight-brief { background: rgba(67, 132, 236, 0.3) !important; border-left: 3px solid #3b82f6; }
       `}</style>
       <Editor
         height="100%"
