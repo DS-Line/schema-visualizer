@@ -11,6 +11,8 @@ export interface SchemaTable {
   name: string;
   columns: SchemaCol[];
   type: "table" | "view";
+  line: number; 
+  column: number; 
 }
 
 export interface SchemaRef {
@@ -20,6 +22,8 @@ export interface SchemaRef {
   toTable: string;
   toCol: string;
   isSystem: boolean;
+  line: number; 
+  column: number; 
 }
 
 export interface SchemaError {

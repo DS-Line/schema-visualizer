@@ -15,7 +15,6 @@ const getLinePos = (text: string, index: number) => {
   return { line, col };
 };
 
-// Parse standard CREATE TABLE columns
 const parseColumns = (body: string): SchemaCol[] => {
   return body
     .split(/,(?![^(]*\))/)
@@ -41,7 +40,6 @@ const parseColumns = (body: string): SchemaCol[] => {
     .filter((c): c is SchemaCol => c !== null);
 };
 
-// Parse SELECT columns for Views
 const parseSelectColumns = (query: string): SchemaCol[] => {
   const selectMatch = /SELECT\s+([\s\S]+?)\s+FROM/i.exec(query);
   if (!selectMatch) return [];
@@ -93,10 +91,13 @@ export const parseSchema = (text: string): SchemaData => {
     /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF NOT EXISTS\s+)?["`]?(\w+)["`]?\s*\(([^;]+)\);?/gi;
   let match;
   while ((match = tableRegex.exec(maskedText)) !== null) {
+    const pos = getLinePos(text, match.index);
     tables.push({
       name: match[1],
       columns: parseColumns(match[2]),
       type: "table",
+      line: pos.line,
+      column: pos.col,
     });
   }
 
@@ -104,15 +105,21 @@ export const parseSchema = (text: string): SchemaData => {
   const viewRegex =
     /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+["`]?(\w+)["`]?\s*(?:\(([^)]+)\))?\s*AS\s+([\s\S]+?)(?:;|$)/gi;
   while ((match = viewRegex.exec(maskedText)) !== null) {
-    const body = match[3];
-    const columns = parseSelectColumns(body);
-    tables.push({ name: match[1], columns: columns, type: "view" });
+    const pos = getLinePos(text, match.index);
+    tables.push({
+      name: match[1],
+      columns: parseSelectColumns(match[3]),
+      type: "view",
+      line: pos.line,
+      column: pos.col,
+    });
   }
 
   // System Refs
   const sqlRefRegex =
     /ALTER TABLE\s+["`]?(\w+)["`]?\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN KEY\s*\((["`]?\w+["`]?)\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\((["`]?\w+["`]?)\)/gi;
   while ((match = sqlRefRegex.exec(maskedText)) !== null) {
+    const pos = getLinePos(text, match.index);
     refs.push({
       id: `sys-${match.index}`,
       fromTable: match[1],
@@ -120,13 +127,16 @@ export const parseSchema = (text: string): SchemaData => {
       toTable: match[3],
       toCol: match[4].replace(/["`]/g, ""),
       isSystem: true,
+      line: pos.line,
+      column: pos.col,
     });
   }
 
-  // User Refs & Validation
+  // User Refs
   const userRefRegex =
     /--\s*Ref:\s*(\w+)["`]?\.["`]?(\w+)["`]?\s*[>=<\-]\s*(\w+)["`]?\.["`]?(\w+)["`]?/gi;
   while ((match = userRefRegex.exec(text)) !== null) {
+    const pos = getLinePos(text, match.index);
     const fromTable = match[1];
     const fromCol = match[2];
     const toTable = match[3];
@@ -139,13 +149,13 @@ export const parseSchema = (text: string): SchemaData => {
       toTable,
       toCol,
       isSystem: false,
+      line: pos.line,
+      column: pos.col,
     });
 
-    // Validation Logic
     const fromT = tables.find((t) => t.name === fromTable);
     const toT = tables.find((t) => t.name === toTable);
     let errorMsg = null;
-
     if (!fromT) errorMsg = `Source table '${fromTable}' not found`;
     else if (
       fromT.type === "table" &&
@@ -157,12 +167,11 @@ export const parseSchema = (text: string): SchemaData => {
       errorMsg = `Column '${toCol}' not found in '${toTable}'`;
 
     if (errorMsg) {
-      const start = getLinePos(text, match.index);
       const end = getLinePos(text, match.index + match[0].length);
       errors.push({
         message: errorMsg,
-        startLineNumber: start.line,
-        startColumn: start.col,
+        startLineNumber: pos.line,
+        startColumn: pos.col,
         endLineNumber: end.line,
         endColumn: end.col,
       });
@@ -175,7 +184,6 @@ export const parseSchema = (text: string): SchemaData => {
     match[1].split(",").forEach((i) => fetchedCols.add(i.trim()));
   }
 
-  // Post-process FK flags
   refs.forEach((ref) => {
     const fromT = tables.find((t) => t.name === ref.fromTable);
     if (fromT && fromT.type === "table") {

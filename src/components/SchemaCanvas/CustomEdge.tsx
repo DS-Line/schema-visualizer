@@ -6,9 +6,11 @@ import {
   getBezierPath,
 } from "@xyflow/react";
 import { X } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
+
 
 export const CustomEdge = ({
+  id,
   sourceX,
   sourceY,
   targetX,
@@ -18,7 +20,9 @@ export const CustomEdge = ({
   style = {},
   markerEnd,
   data,
+  selected,
 }: EdgeProps) => {
+  const [isHovered, setIsHovered] = useState(false);
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -35,10 +39,37 @@ export const CustomEdge = ({
     }
   };
 
+  const isSystem = id.startsWith("sys-");
+
+  // Todo: Update this Color
+  let strokeColor = isSystem ? "#94a3b8" : "#3b82f6"; // Default
+  if (selected) {
+    strokeColor = isSystem ? "#475569" : "#2563eb"; // Selected (Darker)
+  } else if (isHovered) {
+    strokeColor = isSystem ? "#cbd5e1" : "#60a5fa"; // Hover (Lighter)
+  }
+
+  const combinedStyle = {
+    ...style,
+    stroke: strokeColor,
+    strokeWidth: selected || isHovered ? 3 : 2,
+    transition: "stroke 0.2s, stroke-width 0.2s",
+  };
+
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
-      {/* Only show delete button if explicitly allowed */}
+      {/* Invisible wider path for better hover interaction */}
+      <path
+        d={edgePath}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={20}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="react-flow__edge-interaction"
+      />
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={combinedStyle} />
+
       {data?.isDeletable && (
         <EdgeLabelRenderer>
           <div
@@ -47,7 +78,10 @@ export const CustomEdge = ({
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
             }}
-            className="opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity"
+            className={`${
+              isHovered || selected ? "opacity-100" : "opacity-0"
+            } transition-opacity`}
+            onMouseEnter={() => setIsHovered(true)}
           >
             <button
               className="bg-gray-100 border border-red-500 rounded-full p-1 text-red-500 hover:bg-red-500 hover:text-white transition-colors shadow-sm cursor-pointer"

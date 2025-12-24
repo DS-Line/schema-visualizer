@@ -5,9 +5,8 @@ import {
   Connection,
   Controls,
   Edge,
-  EdgeTypes,
   MarkerType,
-  NodeTypes,
+  OnSelectionChangeParams,
   ReactFlow,
   useEdgesState,
   useNodesState,
@@ -18,7 +17,12 @@ import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo } from "react";
 
 import { getLayoutedElements } from "@schema-viz/lib/layout";
-import { AppNode, SchemaData, SchemaRef } from "@schema-viz/lib/types";
+import {
+  AppNode,
+  SchemaData,
+  SchemaRef,
+  SchemaTable,
+} from "@schema-viz/lib/types";
 
 import { CustomEdge } from "./CustomEdge";
 import { CustomNode } from "./CustomNode";
@@ -27,6 +31,7 @@ interface CanvasProps {
   data: SchemaData;
   onAddRef: (refStr: string) => void;
   onRemoveRef: (ref: SchemaRef) => void;
+  onSelectElement: (item: SchemaTable | SchemaRef) => void;
   readOnly?: boolean;
   defaultZoom?: number;
 }
@@ -35,14 +40,15 @@ export const Canvas = ({
   data,
   onAddRef,
   onRemoveRef,
+  onSelectElement,
   readOnly,
   defaultZoom,
 }: CanvasProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-  const nodeTypes = useMemo<NodeTypes>(() => ({ customTable: CustomNode }), []);
-  const edgeTypes = useMemo<EdgeTypes>(() => ({ customEdge: CustomEdge }), []);
+  const nodeTypes = useMemo(() => ({ customTable: CustomNode }), []);
+  const edgeTypes = useMemo(() => ({ customEdge: CustomEdge }), []);
 
   // in react flow, fitView overrides defaultViewport, so only fitView when no defaultZoom is provided
   const shouldFitView = defaultZoom === undefined;
@@ -64,7 +70,6 @@ export const Canvas = ({
       targetHandle: ref.toCol,
       animated: false,
       deletable: !readOnly && !ref.isSystem,
-      style: { stroke: ref.isSystem ? "#94a3b8" : "#3b82f6", strokeWidth: 2 },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         color: ref.isSystem ? "#94a3b8" : "#3b82f6",
@@ -98,24 +103,23 @@ export const Canvas = ({
         !params.targetHandle
       )
         return;
-
-      const exists = edges.some(
-        (e) =>
-          (e.source === params.source &&
-            e.target === params.target &&
-            e.sourceHandle === params.sourceHandle &&
-            e.targetHandle === params.targetHandle) ||
-          (e.source === params.target &&
-            e.target === params.source &&
-            e.sourceHandle === params.targetHandle &&
-            e.targetHandle === params.sourceHandle)
-      );
-      if (exists) return;
-
       const newRef = `\n-- Ref: ${params.source}.${params.sourceHandle} > ${params.target}.${params.targetHandle}`;
       onAddRef(newRef);
     },
-    [edges, onAddRef, readOnly]
+    [onAddRef, readOnly]
+  );
+
+  const onSelectionChange = useCallback(
+    ({ nodes, edges }: OnSelectionChangeParams) => {
+      if (nodes.length === 1) {
+        const table = data.tables.find((t) => t.name === nodes[0].id);
+        if (table) onSelectElement(table);
+      } else if (edges.length === 1) {
+        const ref = data.refs.find((r) => r.id === edges[0].id);
+        if (ref) onSelectElement(ref);
+      }
+    },
+    [data.tables, data.refs, onSelectElement]
   );
 
   return (
@@ -126,6 +130,7 @@ export const Canvas = ({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onSelectionChange={onSelectionChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView={shouldFitView}
@@ -136,7 +141,7 @@ export const Canvas = ({
         maxZoom={2}
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
-        elementsSelectable={!readOnly}
+        elementsSelectable={true} // Change to false to disable select in readOnly
         proOptions={{ hideAttribution: true }}
         className="bg-gray-50"
       >

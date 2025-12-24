@@ -14,6 +14,7 @@ interface MonacoWrapperProps {
   schemaTables?: SchemaTable[];
   validationErrors?: SchemaError[];
   onCursorChange?: (line: number, col: number) => void;
+  highlightRequest?: { line: number; col: number; ts: number } | null;
 }
 
 export const MonacoWrapper = ({
@@ -23,10 +24,14 @@ export const MonacoWrapper = ({
   schemaTables = [],
   validationErrors = [],
   onCursorChange,
+  highlightRequest,
 }: MonacoWrapperProps) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const decorationsRef = useRef<string[]>([]);
+  const highlightCollectionRef =
+    useRef<editor.IEditorDecorationsCollection | null>(null);
+
   const completionDisposableRef = useRef<IDisposable | null>(null);
 
   const updateDecorations = (
@@ -59,6 +64,41 @@ export const MonacoWrapper = ({
       metadataMatches
     );
   };
+
+  // Scroll and highlight
+  useEffect(() => {
+    if (!highlightRequest || !editorRef.current || !monacoRef.current) return;
+
+    const { line, col } = highlightRequest;
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+
+    editor.revealLineInCenterIfOutsideViewport(line);
+    editor.setPosition({ lineNumber: line, column: col });
+    editor.focus();
+
+    // Create collection
+    if (!highlightCollectionRef.current) {
+      highlightCollectionRef.current = editor.createDecorationsCollection();
+    }
+
+    highlightCollectionRef.current.set([
+      {
+        range: new monaco.Range(line, 1, line, 1),
+        options: {
+          isWholeLine: true,
+          className: "line-highlight-brief",
+        },
+      },
+    ]);
+
+    const timer = setTimeout(() => {
+      highlightCollectionRef.current?.clear();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [highlightRequest]);
+
   // Squiggly Lines (Markers)
   useEffect(() => {
     if (monacoRef.current && editorRef.current) {
@@ -176,7 +216,6 @@ export const MonacoWrapper = ({
 
     updateDecorations(editorInstance, monacoInstance, value);
 
-    // Track Cursor Position
     if (onCursorChange) {
       editorInstance.onDidChangeCursorPosition((e) => {
         onCursorChange(e.position.lineNumber, e.position.column);
@@ -199,12 +238,12 @@ export const MonacoWrapper = ({
   return (
     <div
       className="h-full w-full relative"
-      onKeyDown={(e) => {
-        // Stop keys from bubbling up to the Parent App to avoid key hijacking
-        e.stopPropagation();
-      }}
+      onKeyDown={(e) => e.stopPropagation()}
     >
-      <style>{`.metadata-token { color: #c93fdfff !important; font-weight: bold; font-style: normal !important; }`}</style>
+      <style>{`
+        .metadata-token { color: #c93fdfff !important; font-weight: 500; }
+        .line-highlight-brief { background: rgba(59, 130, 246, 0.2) !important; border-left: 3px solid #3b82f6; }
+      `}</style>
       <Editor
         height="100%"
         width="100%"
