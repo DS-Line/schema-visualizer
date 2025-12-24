@@ -74,6 +74,190 @@ const parseSelectColumns = (query: string): SchemaCol[] => {
     .filter((c) => c.name && c.name !== "*" && !c.name.includes(" "));
 };
 
+// Validate SQL DDL syntax
+const validateSyntax = (text: string, errors: SchemaError[]) => {
+  const lines = text.split("\n");
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Skip empty lines and comments
+    if (!trimmed || trimmed.startsWith("--") || trimmed.startsWith("/*"))
+      continue;
+
+    // Check for statements starting with CREATE
+    if (/^CREATE\s+/i.test(trimmed)) {
+      // Must be CREATE TABLE or CREATE VIEW
+      if (!/^CREATE\s+(?:OR\s+REPLACE\s+)?(?:TABLE|VIEW)\s+/i.test(trimmed)) {
+        const createMatch = /^(CREATE\s+\w*)/i.exec(trimmed);
+        if (createMatch) {
+          errors.push({
+            message:
+              "Invalid CREATE statement.",
+            startLineNumber: i + 1,
+            startColumn: 1,
+            endLineNumber: i + 1,
+            endColumn: createMatch[0].length + 1,
+          });
+        }
+        continue;
+      }
+
+      // Check for missing table/view name
+      const nameMatch =
+        /^CREATE\s+(?:OR\s+REPLACE\s+)?(?:TABLE|VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?(["`]?\w+["`]?)?/i.exec(
+          trimmed
+        );
+      if (!nameMatch || !nameMatch[1]) {
+        errors.push({
+          message: "Missing table or view name after CREATE",
+          startLineNumber: i + 1,
+          startColumn: 1,
+          endLineNumber: i + 1,
+          endColumn: trimmed.length + 1,
+        });
+        continue;
+      }
+
+      // For CREATE TABLE, check for opening parenthesis
+      if (/^CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+/i.test(trimmed)) {
+        if (!/\(/.test(trimmed)) {
+          // Check next lines for opening paren
+          let foundParen = false;
+          for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+            if (/\(/.test(lines[j])) {
+              foundParen = true;
+              break;
+            }
+          }
+
+          if (!foundParen) {
+            errors.push({
+              message: "Expected '(' after table name",
+              startLineNumber: i + 1,
+              startColumn: trimmed.length,
+              endLineNumber: i + 1,
+              endColumn: trimmed.length + 1,
+            });
+          }
+        }
+      }
+
+      // Check for missing semicolon at end of CREATE statement
+      const fullStatement = extractStatement(lines, i);
+      if (fullStatement.text && !fullStatement.text.trim().endsWith(";")) {
+        const endLine = fullStatement.endLine;
+        const endLineText = lines[endLine];
+        errors.push({
+          message: "Missing semicolon at end of statement",
+          startLineNumber: endLine + 1,
+          startColumn: endLineText.length,
+          endLineNumber: endLine + 1,
+          endColumn: endLineText.length + 1,
+        });
+      }
+    }
+
+    // Check for ALTER TABLE statements
+    if (/^ALTER\s+TABLE\s+/i.test(trimmed)) {
+      // Check for missing semicolon
+      const fullStatement = extractStatement(lines, i);
+      if (fullStatement.text && !fullStatement.text.trim().endsWith(";")) {
+        const endLine = fullStatement.endLine;
+        const endLineText = lines[endLine];
+        errors.push({
+          message: "Missing semicolon at end of ALTER TABLE statement",
+          startLineNumber: endLine + 1,
+          startColumn: endLineText.length,
+          endLineNumber: endLine + 1,
+          endColumn: endLineText.length + 1,
+        });
+      }
+    }
+
+    // Check for orphaned SQL keywords that don't form valid statements
+    const orphanedKeywords =
+      /^(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN|TABLE|VIEW)\s/i;
+    if (
+      orphanedKeywords.test(trimmed) &&
+      !trimmed.startsWith("CREATE") &&
+      !trimmed.startsWith("ALTER") &&
+      !/^CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+/i.test(
+        lines.slice(Math.max(0, i - 3), i + 1).join(" ")
+      )
+    ) {
+      errors.push({
+        message:
+          "Unexpected SQL keyword. Statement must start with CREATE or ALTER",
+        startLineNumber: i + 1,
+        startColumn: 1,
+        endLineNumber: i + 1,
+        endColumn: trimmed.split(/\s+/)[0].length + 1,
+      });
+    }
+
+    // Check for invalid characters or malformed syntax
+    if (
+      !/^(CREATE|ALTER|SELECT|INSERT|UPDATE|DELETE|WITH|--)/i.test(trimmed) &&
+      trimmed.length > 0 &&
+      !/^[);]/.test(trimmed)
+    ) {
+      // Check if it's not part of a multi-line statement
+      const prevNonEmpty = findPreviousNonEmpty(lines, i);
+      if (
+        prevNonEmpty === -1 ||
+        (lines[prevNonEmpty].trim().endsWith(";") &&
+          !lines[prevNonEmpty].trim().match(/\($|,$|,\s*$/))
+      ) {
+        errors.push({
+          message: "Invalid syntax.",
+          startLineNumber: i + 1,
+          startColumn: 1,
+          endLineNumber: i + 1,
+          endColumn: Math.min(30, trimmed.length + 1),
+        });
+      }
+    }
+  }
+};
+
+// Extract full statement from multiple lines
+const extractStatement = (
+  lines: string[],
+  startIdx: number
+): { text: string; endLine: number } => {
+  let statement = lines[startIdx];
+  let endLine = startIdx;
+
+  // Find the end of statement (semicolon or end of related lines)
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line.startsWith("--")) continue;
+
+    statement += " " + line;
+    endLine = i;
+
+    if (line.includes(";")) break;
+
+    // Stop if we hit a new statement
+    if (/^(CREATE|ALTER)\s+/i.test(line)) break;
+  }
+
+  return { text: statement, endLine };
+};
+
+// Find previous non-empty, non-comment line
+const findPreviousNonEmpty = (lines: string[], currentIdx: number): number => {
+  for (let i = currentIdx - 1; i >= 0; i--) {
+    const trimmed = lines[i].trim();
+    if (trimmed && !trimmed.startsWith("--")) {
+      return i;
+    }
+  }
+  return -1;
+};
+
 export const parseSchema = (text: string): SchemaData => {
   const tables: SchemaTable[] = [];
   const refs: SchemaRef[] = [];
@@ -82,13 +266,16 @@ export const parseSchema = (text: string): SchemaData => {
 
   if (!text) return { tables, refs, fetchedCols, errors };
 
+  // Validate syntax first
+  validateSyntax(text, errors);
+
   const maskedText = text
     .replace(/--.*$/gm, (m) => " ".repeat(m.length))
     .replace(/\/\*[\s\S]*?\*\//g, (m) => " ".repeat(m.length));
 
   // Tables
   const tableRegex =
-    /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF NOT EXISTS\s+)?["`]?(\w+)["`]?\s*\(([^;]+)\);?/gi;
+    /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`]?(\w+)["`]?\s*\(([^;]+)\);?/gi;
   let match;
   while ((match = tableRegex.exec(maskedText)) !== null) {
     const pos = getLinePos(text, match.index);
@@ -117,7 +304,7 @@ export const parseSchema = (text: string): SchemaData => {
 
   // System Refs
   const sqlRefRegex =
-    /ALTER TABLE\s+["`]?(\w+)["`]?\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN KEY\s*\((["`]?\w+["`]?)\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\((["`]?\w+["`]?)\)/gi;
+    /ALTER\s+TABLE\s+["`]?(\w+)["`]?\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN\s+KEY\s*\((["`]?\w+["`]?)\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\((["`]?\w+["`]?)\)/gi;
   while ((match = sqlRefRegex.exec(maskedText)) !== null) {
     const pos = getLinePos(text, match.index);
     refs.push({
