@@ -1,5 +1,5 @@
 "use client";
-import { CustomNodeType } from "@schema-viz/lib/types";
+import { CustomNodeType, SchemaCol } from "@schema-viz/lib/types";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import {
   ArrowDownToLine,
@@ -53,7 +53,7 @@ export const CustomNode = memo(
             </div>
           )}
 
-          {table.columns.map((col) => {
+          {table.columns.map((col: SchemaCol) => {
             // No repeated connections
             const isFetched =
               fetchedCols instanceof Set
