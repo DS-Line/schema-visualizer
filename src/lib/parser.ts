@@ -155,10 +155,10 @@ const validateSyntax = (text: string, errors: SchemaError[]) => {
 
       // Check for missing table/view name
       const nameMatch =
-        /^CREATE\s+(?:OR\s+REPLACE\s+)?(?:TABLE|VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?(["`]?\w+["`]?)?/i.exec(
+        /^CREATE\s+(?:OR\s+REPLACE\s+)?(?:TABLE|VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:(?:\[\w+\]|\w+)\.)?(?:\[(\w+)\]|(\w+))/i.exec(
           trimmed
         );
-      if (!nameMatch || !nameMatch[1]) {
+      if (!nameMatch || (!nameMatch[1] && !nameMatch[2])) {
         errors.push({
           message: "Missing table or view name after CREATE",
           startLineNumber: i + 1,
@@ -257,7 +257,7 @@ const validateSyntax = (text: string, errors: SchemaError[]) => {
         (lines[prevNonEmpty].trim().endsWith(";") &&
           !lines[prevNonEmpty].trim().match(/\($|,$|,\s*$/))
       ) {
-        // Don't flag if we're inside a CREATE VIEW as VIEW can be multiline without semicolon
+        // Don't flag if we're inside a CREATE VIEW
         if (!isInsideCreateView(lines, i)) {
           errors.push({
             message: "Invalid syntax.",
@@ -325,13 +325,14 @@ export const parseSchema = (text: string): SchemaData => {
 
   // Tables
   const tableRegex =
-    /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`]?(\w+)["`]?\s*\(([^;]+)\);?/gi;
+    /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:(?:\[\w+\]|\w+)\.)?(?:\[(\w+)\]|(\w+))\s*\(([^;]+)\);?/gi;
   let match;
   while ((match = tableRegex.exec(maskedText)) !== null) {
     const pos = getLinePos(text, match.index);
+    const tableName = match[1] || match[2]; // match[1] is bracketed, match[2] is unbracketed
     tables.push({
-      name: match[1],
-      columns: parseColumns(match[2]),
+      name: tableName,
+      columns: parseColumns(match[3]),
       type: "table",
       line: pos.line,
       column: pos.col,
@@ -340,12 +341,13 @@ export const parseSchema = (text: string): SchemaData => {
 
   // Views
   const viewRegex =
-    /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+["`]?(\w+)["`]?\s*(?:\(([^)]+)\))?\s*AS\s+([\s\S]+?)(?:;|$)/gi;
+    /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:(?:\[\w+\]|\w+)\.)?(?:\[(\w+)\]|(\w+))\s*(?:\(([^)]+)\))?\s*AS\s+([\s\S]+?)(?:;|$)/gi;
   while ((match = viewRegex.exec(maskedText)) !== null) {
     const pos = getLinePos(text, match.index);
+    const viewName = match[1] || match[2]; // match[1] is bracketed, match[2] is unbracketed
     tables.push({
-      name: match[1],
-      columns: parseSelectColumns(match[3]),
+      name: viewName,
+      columns: parseSelectColumns(match[4]),
       type: "view",
       line: pos.line,
       column: pos.col,
@@ -354,15 +356,17 @@ export const parseSchema = (text: string): SchemaData => {
 
   // System Refs
   const sqlRefRegex =
-    /ALTER\s+TABLE\s+["`]?(\w+)["`]?\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN\s+KEY\s*\((["`]?\w+["`]?)\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\((["`]?\w+["`]?)\)/gi;
+    /ALTER\s+TABLE\s+(?:(?:\[\w+\]|\w+)\.)?(?:\[(\w+)\]|(\w+))\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN\s+KEY\s*\((?:\[)?(["`]?\w+["`]?)(?:\])?\)\s*REFERENCES\s+(?:(?:\[\w+\]|\w+)\.)?(?:\[(\w+)\]|(\w+))\s*\((?:\[)?(["`]?\w+["`]?)(?:\])?\)/gi;
   while ((match = sqlRefRegex.exec(maskedText)) !== null) {
     const pos = getLinePos(text, match.index);
+    const fromTable = match[1] || match[2];
+    const toTable = match[4] || match[5];
     refs.push({
       id: `sys-${match.index}`,
-      fromTable: match[1],
-      fromCol: match[2].replace(/["`]/g, ""),
-      toTable: match[3],
-      toCol: match[4].replace(/["`]/g, ""),
+      fromTable: fromTable,
+      fromCol: match[3].replace(/["`\[\]]/g, ""),
+      toTable: toTable,
+      toCol: match[6].replace(/["`\[\]]/g, ""),
       isSystem: true,
       line: pos.line,
       column: pos.col,
