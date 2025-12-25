@@ -15,5 +15,5 @@ pnpm install
 pnpm dev
 ```
 
-<img alt="image" src="https://github.com/user-attachments/assets/f60f72e3-b9d2-4a30-8df6-39b94fb92e0c" />
-<img alt="image" src="https://github.com/user-attachments/assets/0b3b32f5-d52f-4ffa-9aad-f4fbda97b315" />
+<img alt="Canvas visible with Schema Editor Expanded" src="https://github.com/user-attachments/assets/f60f72e3-b9d2-4a30-8df6-39b94fb92e0c" />
+<img alt="Canvas visible with Schema Editor Collapsed" src="https://github.com/user-attachments/assets/0b3b32f5-d52f-4ffa-9aad-f4fbda97b315" />
