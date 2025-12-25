@@ -74,6 +74,56 @@ const parseSelectColumns = (query: string): SchemaCol[] => {
     .filter((c) => c.name && c.name !== "*" && !c.name.includes(" "));
 };
 
+// Check if a line index is inside a CREATE VIEW statement
+const isInsideCreateView = (lines: string[], lineIdx: number): boolean => {
+  let insideView = false;
+
+  // Look backwards to find if we're in a CREATE VIEW block
+  for (let i = lineIdx; i >= 0; i--) {
+    const trimmed = lines[i].trim();
+    if (!trimmed || trimmed.startsWith("--")) continue;
+
+    // If we hit a semicolon before finding CREATE VIEW, we're not in one
+    if (trimmed.endsWith(";") && i < lineIdx) {
+      return false;
+    }
+
+    // Found CREATE VIEW
+    if (/^CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+/i.test(trimmed)) {
+      insideView = true;
+      break;
+    }
+
+    // If we hit another CREATE or ALTER statement, we're not in a view
+    if (/^(CREATE\s+TABLE|ALTER\s+TABLE)\s+/i.test(trimmed)) {
+      return false;
+    }
+  }
+
+  if (!insideView) return false;
+
+  // Now check forward to make sure we haven't ended the view yet
+  for (let i = lineIdx; i >= 0; i--) {
+    const trimmed = lines[i].trim();
+    if (!trimmed || trimmed.startsWith("--")) continue;
+
+    if (/^CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+/i.test(trimmed)) {
+      // Found the start, now check if current line is before the end
+      for (let j = i; j < lines.length; j++) {
+        const checkLine = lines[j].trim();
+        if (checkLine.endsWith(";")) {
+          // View ends at line j
+          return lineIdx <= j;
+        }
+      }
+      // No semicolon found, view extends to end
+      return true;
+    }
+  }
+
+  return false;
+};
+
 // Validate SQL DDL syntax
 const validateSyntax = (text: string, errors: SchemaError[]) => {
   const lines = text.split("\n");
@@ -93,8 +143,7 @@ const validateSyntax = (text: string, errors: SchemaError[]) => {
         const createMatch = /^(CREATE\s+\w*)/i.exec(trimmed);
         if (createMatch) {
           errors.push({
-            message:
-              "Invalid CREATE statement.",
+            message: "Invalid CREATE statement.",
             startLineNumber: i + 1,
             startColumn: 1,
             endLineNumber: i + 1,
@@ -183,9 +232,7 @@ const validateSyntax = (text: string, errors: SchemaError[]) => {
       orphanedKeywords.test(trimmed) &&
       !trimmed.startsWith("CREATE") &&
       !trimmed.startsWith("ALTER") &&
-      !/^CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+/i.test(
-        lines.slice(Math.max(0, i - 3), i + 1).join(" ")
-      )
+      !isInsideCreateView(lines, i)
     ) {
       errors.push({
         message:
@@ -210,13 +257,16 @@ const validateSyntax = (text: string, errors: SchemaError[]) => {
         (lines[prevNonEmpty].trim().endsWith(";") &&
           !lines[prevNonEmpty].trim().match(/\($|,$|,\s*$/))
       ) {
-        errors.push({
-          message: "Invalid syntax.",
-          startLineNumber: i + 1,
-          startColumn: 1,
-          endLineNumber: i + 1,
-          endColumn: Math.min(30, trimmed.length + 1),
-        });
+        // Don't flag if we're inside a CREATE VIEW as VIEW can be multiline without semicolon
+        if (!isInsideCreateView(lines, i)) {
+          errors.push({
+            message: "Invalid syntax.",
+            startLineNumber: i + 1,
+            startColumn: 1,
+            endLineNumber: i + 1,
+            endColumn: Math.min(30, trimmed.length + 1),
+          });
+        }
       }
     }
   }
@@ -235,13 +285,13 @@ const extractStatement = (
     const line = lines[i].trim();
     if (!line || line.startsWith("--")) continue;
 
+    // Stop if we hit a new statement (before adding it)
+    if (/^(CREATE|ALTER)\s+/i.test(line)) break;
+
     statement += " " + line;
     endLine = i;
 
     if (line.includes(";")) break;
-
-    // Stop if we hit a new statement
-    if (/^(CREATE|ALTER)\s+/i.test(line)) break;
   }
 
   return { text: statement, endLine };
