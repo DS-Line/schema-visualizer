@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -15,6 +16,7 @@
     "clsx": "^2.1.1",
     "dagre": "^0.8.5",
     "lucide-react": "^0.556.0",
+    "monaco-editor": "^0.55.1",
     "next": "16.0.8",
     "react": "19.2.1",
     "react-dom": "19.2.1",
