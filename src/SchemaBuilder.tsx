@@ -127,16 +127,24 @@ export const SchemaBuilder = ({
   useEffect(() => {
     const dirty = code !== initialSchema;
     setIsDirty(dirty);
-    if (onDirtyChange) onDirtyChange(dirty);
+
+    //if user clicks save button and then wants to navigate away, we let them without showing unsaved changes dialog
+    if (onDirtyChange) {
+      onDirtyChange(isSaving ? false : dirty);
+    }
+
     if (onCodeChange) onCodeChange(code);
     if (onErrorChange) onErrorChange(effectiveErrors);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, initialSchema, effectiveErrors]);
+  }, [code, initialSchema, effectiveErrors, isSaving]);
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSave(code);
-    setIsSaving(false);
+    try {
+      await onSave(code);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCopy = async () => {
