@@ -103,10 +103,37 @@ export const Canvas = ({
         !params.targetHandle
       )
         return;
+
+      const exists = data.refs.some((ref) => {
+        const sourceTable = params.source!;
+        const targetTable = params.target!;
+        const sourceCol = params.sourceHandle!;
+        const targetCol = params.targetHandle!;
+
+        const isForward =
+          ref.fromTable === sourceTable &&
+          ref.fromCol === sourceCol &&
+          ref.toTable === targetTable &&
+          ref.toCol === targetCol;
+
+        const isBackward =
+          ref.fromTable === targetTable &&
+          ref.fromCol === targetCol &&
+          ref.toTable === sourceTable &&
+          ref.toCol === sourceCol;
+
+        return isForward || isBackward;
+      });
+
+      if (exists) {
+        console.log("Connection already exists in schema.");
+        return;
+      }
+
       const newRef = `\n-- Ref: ${params.source}.${params.sourceHandle} > ${params.target}.${params.targetHandle}`;
       onAddRef(newRef);
     },
-    [onAddRef, readOnly]
+    [data.refs, onAddRef, readOnly]
   );
 
   const onSelectionChange = useCallback(
