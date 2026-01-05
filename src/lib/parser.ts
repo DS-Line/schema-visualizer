@@ -15,24 +15,81 @@ const getLinePos = (text: string, index: number) => {
   return { line, col };
 };
 
+const checkTypeCompatibility = (typeA: string, typeB: string): boolean => {
+  const t1 = typeA.toUpperCase().trim();
+  const t2 = typeB.toUpperCase().trim();
+
+  // Exact Match or Empty (Unknown types from views often empty)
+  if (t1 === t2 || t1 === "" || t2 === "") return true;
+
+  const numberTypes = new Set([
+    "NUMBER",
+    "INT",
+    "INTEGER",
+    "BIGINT",
+    "SMALLINT",
+    "TINYINT",
+    "DECIMAL",
+    "NUMERIC",
+    "FLOAT",
+    "REAL",
+    "DOUBLE",
+    "BIT",
+    "MONEY",
+  ]);
+  if (numberTypes.has(t1) && numberTypes.has(t2)) return true;
+
+  const stringTypes = new Set([
+    "VARCHAR",
+    "TEXT",
+    "CHAR",
+    "STRING",
+    "NVARCHAR",
+    "NCHAR",
+    "CLOB",
+    "XML",
+    "UNIQUEIDENTIFIER",
+  ]);
+  if (stringTypes.has(t1) && stringTypes.has(t2)) return true;
+
+  const dateTypes = new Set([
+    "DATE",
+    "TIMESTAMP",
+    "DATETIME",
+    "TIME",
+    "DATETIME2",
+    "SMALLDATETIME",
+    "DATETIMEOFFSET",
+  ]);
+  if (dateTypes.has(t1) && dateTypes.has(t2)) return true;
+
+  return false;
+};
+
 const parseColumns = (body: string): SchemaCol[] => {
   return body
     .split(/,(?![^(]*\))/)
     .map((colStr): SchemaCol | null => {
       const parts = colStr.trim().split(/\s+/);
       const first = parts[0]?.toUpperCase();
+      // Added check for bracketed identifiers due to fabric's ddl formatting
       if (
         !first ||
-        /^(PRIMARY|CONSTRAINT|FOREIGN|KEY|UNIQUE|CHECK|INDEX)/.test(first)
+        (/^(PRIMARY|CONSTRAINT|FOREIGN|KEY|UNIQUE|CHECK|INDEX)/.test(first) &&
+          !first.startsWith("["))
       )
         return null;
 
-      const name = parts[0].replace(/["`]/g, "");
+      // Clean brackets [ ] in addition to quotes
+      const name = parts[0].replace(/["`\[\]]/g, "");
+
+      // Extract base type ignoring arguments e.g. VARCHAR(255) -> VARCHAR
       const type =
         parts
           .slice(1)
           .join(" ")
-          .match(/^[A-Z_]+/i)?.[0] ?? "";
+          .match(/^[A-Z0-9_]+/i)?.[0] ?? "";
+
       const isPk = /PRIMARY KEY/i.test(colStr);
 
       return { name, type, isPk, isFk: false };
@@ -51,8 +108,9 @@ const parseSelectColumns = (query: string): SchemaCol[] => {
       const asMatch = /(.+)\s+AS\s+(.+)/i.exec(clean);
       if (asMatch)
         return {
-          name: asMatch[2].trim().replace(/["`]/g, ""),
-          type: "",
+          // Clean brackets from alias
+          name: asMatch[2].trim().replace(/["`\[\]]/g, ""),
+          type: "", // Views often have unknown types in Regex parsing
           isPk: false,
           isFk: false,
         };
@@ -65,7 +123,8 @@ const parseSelectColumns = (query: string): SchemaCol[] => {
         clean = spaceParts[spaceParts.length - 1];
 
       return {
-        name: clean.replace(/["`]/g, ""),
+        // Clean brackets from column name
+        name: clean.replace(/["`\[\]]/g, ""),
         type: "",
         isPk: false,
         isFk: false,
@@ -155,10 +214,10 @@ const validateSyntax = (text: string, errors: SchemaError[]) => {
 
       // Check for missing table/view name
       const nameMatch =
-        /^CREATE\s+(?:OR\s+REPLACE\s+)?(?:TABLE|VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?(["`]?\w+["`]?)?/i.exec(
+        /^CREATE\s+(?:OR\s+REPLACE\s+)?(?:TABLE|VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:(?:\[[^\]]+\]|\w+)\.)?(?:\[([^\]]+)\]|(\w+))/i.exec(
           trimmed
         );
-      if (!nameMatch || !nameMatch[1]) {
+      if (!nameMatch || (!nameMatch[1] && !nameMatch[2])) {
         errors.push({
           message: "Missing table or view name after CREATE",
           startLineNumber: i + 1,
@@ -172,7 +231,6 @@ const validateSyntax = (text: string, errors: SchemaError[]) => {
       // For CREATE TABLE, check for opening parenthesis
       if (/^CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+/i.test(trimmed)) {
         if (!/\(/.test(trimmed)) {
-          // Check next lines for opening paren
           let foundParen = false;
           for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
             if (/\(/.test(lines[j])) {
@@ -257,7 +315,7 @@ const validateSyntax = (text: string, errors: SchemaError[]) => {
         (lines[prevNonEmpty].trim().endsWith(";") &&
           !lines[prevNonEmpty].trim().match(/\($|,$|,\s*$/))
       ) {
-        // Don't flag if we're inside a CREATE VIEW as VIEW can be multiline without semicolon
+        // Don't flag if we're inside a CREATE VIEW
         if (!isInsideCreateView(lines, i)) {
           errors.push({
             message: "Invalid syntax.",
@@ -316,7 +374,6 @@ export const parseSchema = (text: string): SchemaData => {
 
   if (!text) return { tables, refs, fetchedCols, errors };
 
-  // Validate syntax first
   validateSyntax(text, errors);
 
   const maskedText = text
@@ -325,13 +382,14 @@ export const parseSchema = (text: string): SchemaData => {
 
   // Tables
   const tableRegex =
-    /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`]?(\w+)["`]?\s*\(([^;]+)\);?/gi;
+    /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:(?:\[[^\]]+\]|\w+)\.)?(?:\[([^\]]+)\]|(\w+))\s*\(([^;]+)\);?/gi;
   let match;
   while ((match = tableRegex.exec(maskedText)) !== null) {
     const pos = getLinePos(text, match.index);
+    const tableName = match[1] || match[2]; // match[1] is bracketed content, match[2] is unbracketed
     tables.push({
-      name: match[1],
-      columns: parseColumns(match[2]),
+      name: tableName,
+      columns: parseColumns(match[3]),
       type: "table",
       line: pos.line,
       column: pos.col,
@@ -340,12 +398,13 @@ export const parseSchema = (text: string): SchemaData => {
 
   // Views
   const viewRegex =
-    /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+["`]?(\w+)["`]?\s*(?:\(([^)]+)\))?\s*AS\s+([\s\S]+?)(?:;|$)/gi;
+    /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:(?:\[[^\]]+\]|\w+)\.)?(?:\[([^\]]+)\]|(\w+))\s*(?:\(([^)]+)\))?\s*AS\s+([\s\S]+?)(?:;|$)/gi;
   while ((match = viewRegex.exec(maskedText)) !== null) {
     const pos = getLinePos(text, match.index);
+    const viewName = match[1] || match[2];
     tables.push({
-      name: match[1],
-      columns: parseSelectColumns(match[3]),
+      name: viewName,
+      columns: parseSelectColumns(match[4]),
       type: "view",
       line: pos.line,
       column: pos.col,
@@ -354,30 +413,34 @@ export const parseSchema = (text: string): SchemaData => {
 
   // System Refs
   const sqlRefRegex =
-    /ALTER\s+TABLE\s+["`]?(\w+)["`]?\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN\s+KEY\s*\((["`]?\w+["`]?)\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\((["`]?\w+["`]?)\)/gi;
+    /ALTER\s+TABLE\s+(?:(?:\[[^\]]+\]|\w+)\.)?(?:\[([^\]]+)\]|(\w+))\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN\s+KEY\s*\((?:\[)?(["`]?[\w\s]+["`]?)(?:\])?\)\s*REFERENCES\s+(?:(?:\[[^\]]+\]|\w+)\.)?(?:\[([^\]]+)\]|(\w+))\s*\((?:\[)?(["`]?[\w\s]+["`]?)(?:\])?\)/gi;
   while ((match = sqlRefRegex.exec(maskedText)) !== null) {
     const pos = getLinePos(text, match.index);
+    const fromTable = match[1] || match[2];
+    const toTable = match[4] || match[5];
+    // Clean brackets from column names if regex captured them
     refs.push({
       id: `sys-${match.index}`,
-      fromTable: match[1],
-      fromCol: match[2].replace(/["`]/g, ""),
-      toTable: match[3],
-      toCol: match[4].replace(/["`]/g, ""),
+      fromTable: fromTable,
+      fromCol: match[3].replace(/["`\[\]]/g, ""),
+      toTable: toTable,
+      toCol: match[6].replace(/["`\[\]]/g, ""),
       isSystem: true,
       line: pos.line,
       column: pos.col,
     });
   }
 
-  // User Refs
+  // User Refs (Comments)
   const userRefRegex =
-    /--\s*Ref:\s*(\w+)["`]?\.["`]?(\w+)["`]?\s*[>=<\-]\s*(\w+)["`]?\.["`]?(\w+)["`]?/gi;
+    /--\s*Ref:\s*((?:\[[^\]]+\]|\w+))["`]?\.["`]?((?:\[[^\]]+\]|\w+))["`]?\s*[>=<\-]\s*((?:\[[^\]]+\]|\w+))["`]?\.["`]?((?:\[[^\]]+\]|\w+))["`]?/gi;
   while ((match = userRefRegex.exec(text)) !== null) {
     const pos = getLinePos(text, match.index);
-    const fromTable = match[1];
-    const fromCol = match[2];
-    const toTable = match[3];
-    const toCol = match[4];
+    // Remove brackets from captured groups
+    const fromTable = match[1].replace(/[\[\]]/g, "");
+    const fromCol = match[2].replace(/[\[\]]/g, "");
+    const toTable = match[3].replace(/[\[\]]/g, "");
+    const toCol = match[4].replace(/[\[\]]/g, "");
 
     refs.push({
       id: `usr-${match.index}`,
@@ -393,15 +456,36 @@ export const parseSchema = (text: string): SchemaData => {
     const fromT = tables.find((t) => t.name === fromTable);
     const toT = tables.find((t) => t.name === toTable);
     let errorMsg = null;
-    if (!fromT) errorMsg = `Source table '${fromTable}' not found`;
-    else if (
-      fromT.type === "table" &&
-      !fromT.columns.find((c) => c.name === fromCol)
-    )
-      errorMsg = `Column '${fromCol}' not found in '${fromTable}'`;
-    else if (!toT) errorMsg = `Target table '${toTable}' not found`;
-    else if (toT.type === "table" && !toT.columns.find((c) => c.name === toCol))
-      errorMsg = `Column '${toCol}' not found in '${toTable}'`;
+
+    if (!fromT) {
+      errorMsg = `Source table '${fromTable}' not found`;
+    } else if (fromT.type === "table") {
+      const colDef = fromT.columns.find((c) => c.name === fromCol);
+      if (!colDef) {
+        errorMsg = `Column '${fromCol}' not found in '${fromTable}'`;
+      }
+      // If table exists, column exists, check target table exists to compare types
+      else if (toT && toT.type === "table") {
+        const targetColDef = toT.columns.find((c) => c.name === toCol);
+        if (targetColDef) {
+          // Both columns exist, check types
+          if (!checkTypeCompatibility(colDef.type, targetColDef.type)) {
+            errorMsg = `Type Mismatch: '${fromTable}.${fromCol}' (${colDef.type}) cannot reference '${toTable}.${toCol}' (${targetColDef.type})`;
+          }
+        }
+      }
+    }
+
+    if (!errorMsg) {
+      if (!toT) {
+        errorMsg = `Target table '${toTable}' not found`;
+      } else if (
+        toT.type === "table" &&
+        !toT.columns.find((c) => c.name === toCol)
+      ) {
+        errorMsg = `Column '${toCol}' not found in '${toTable}'`;
+      }
+    }
 
     if (errorMsg) {
       const end = getLinePos(text, match.index + match[0].length);
@@ -418,7 +502,9 @@ export const parseSchema = (text: string): SchemaData => {
   // Fetch
   const fetchRegex = /--\s*fetch:\s*\[([^\]]+)\]/gi;
   while ((match = fetchRegex.exec(text)) !== null) {
-    match[1].split(",").forEach((i) => fetchedCols.add(i.trim()));
+    match[1]
+      .split(",")
+      .forEach((i) => fetchedCols.add(i.trim().replace(/[\[\]]/g, "")));
   }
 
   refs.forEach((ref) => {

@@ -125,7 +125,7 @@ export const SchemaBuilder = ({
   }, [schemaData.errors, isInvalidEmpty]);
 
   useEffect(() => {
-    const dirty = code !== initialSchema;
+    const dirty = code.trim() !== initialSchema.trim();
     setIsDirty(dirty);
     if (onDirtyChange) onDirtyChange(dirty);
     if (onCodeChange) onCodeChange(code);
@@ -135,8 +135,11 @@ export const SchemaBuilder = ({
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSave(code);
-    setIsSaving(false);
+    try {
+      await onSave(code);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCopy = async () => {
