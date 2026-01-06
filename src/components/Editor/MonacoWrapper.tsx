@@ -43,7 +43,7 @@ export const MonacoWrapper = ({
     if (!model) return;
 
     const metadataMatches: editor.IModelDeltaDecoration[] = [];
-    const regex = /--\s*(Ref:|fetch:).*/g;
+    const regex = /--\s*(ref:|fetch:).*/gi;
     let match: RegExpExecArray | null;
 
     while ((match = regex.exec(text)) !== null) {
