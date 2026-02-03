@@ -1,19 +1,19 @@
-"use client";
-import { CustomNodeType, SchemaCol } from "@schema-viz/lib/types";
-import { Handle, NodeProps, Position } from "@xyflow/react";
+"use client"
+import type { CustomNodeType, SchemaCol } from "@schema-viz/lib/types"
+import { Handle, type NodeProps, Position } from "@xyflow/react"
 import {
   ArrowDownToLine,
   Eye,
   Key,
   Link as LinkIcon,
   PanelsTopLeft,
-} from "lucide-react";
-import { memo } from "react";
+} from "lucide-react"
+import { memo } from "react"
 
 export const CustomNode = memo(
   ({ data, selected }: NodeProps<CustomNodeType>) => {
-    const { table, fetchedCols } = data;
-    const isView = table.type === "view";
+    const { table, fetchedCols } = data
+    const isView = table.type === "view"
 
     return (
       <div
@@ -58,8 +58,8 @@ export const CustomNode = memo(
             const isFetched =
               fetchedCols instanceof Set
                 ? fetchedCols.has(`${table.name}.${col.name}`)
-                : false;
-            const handleId = col.name;
+                : false
+            const handleId = col.name
 
             return (
               <div
@@ -103,12 +103,12 @@ export const CustomNode = memo(
                   className="!w-full !h-full !rounded-none !border-none !bg-transparent !top-0 !bottom-0 !right-0 !transform-none z-10"
                 ></Handle>
               </div>
-            );
+            )
           })}
         </div>
       </div>
-    );
-  }
-);
+    )
+  },
+)
 
-CustomNode.displayName = "CustomNode";
+CustomNode.displayName = "CustomNode"

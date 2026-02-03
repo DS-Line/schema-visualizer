@@ -1,20 +1,19 @@
-"use client";
+"use client"
 
-import { useEffect, useRef } from "react";
-
-import Editor, { Monaco, OnMount } from "@monaco-editor/react";
-import { SchemaError, SchemaTable } from "@schema-viz/lib/types";
-import { Loader2 } from "lucide-react";
-import type { editor, IDisposable, languages, Position } from "monaco-editor";
+import Editor, { type Monaco, type OnMount } from "@monaco-editor/react"
+import type { SchemaError, SchemaTable } from "@schema-viz/lib/types"
+import { Loader2 } from "lucide-react"
+import type { editor, IDisposable, languages, Position } from "monaco-editor"
+import { useEffect, useRef } from "react"
 
 interface MonacoWrapperProps {
-  value: string;
-  onChange: (val: string) => void;
-  readOnly?: boolean;
-  schemaTables?: SchemaTable[];
-  validationErrors?: SchemaError[];
-  onCursorChange?: (line: number, col: number) => void;
-  highlightRequest?: { line: number; col: number; ts: number } | null;
+  value: string
+  onChange: (val: string) => void
+  readOnly?: boolean
+  schemaTables?: SchemaTable[]
+  validationErrors?: SchemaError[]
+  onCursorChange?: (line: number, col: number) => void
+  highlightRequest?: { line: number; col: number; ts: number } | null
 }
 
 export const MonacoWrapper = ({
@@ -26,60 +25,60 @@ export const MonacoWrapper = ({
   onCursorChange,
   highlightRequest,
 }: MonacoWrapperProps) => {
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const monacoRef = useRef<Monaco | null>(null);
-  const decorationsRef = useRef<string[]>([]);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const monacoRef = useRef<Monaco | null>(null)
+  const decorationsRef = useRef<string[]>([])
   const highlightCollectionRef =
-    useRef<editor.IEditorDecorationsCollection | null>(null);
+    useRef<editor.IEditorDecorationsCollection | null>(null)
 
-  const completionDisposableRef = useRef<IDisposable | null>(null);
+  const completionDisposableRef = useRef<IDisposable | null>(null)
 
   const updateDecorations = (
     editorInstance: editor.IStandaloneCodeEditor,
     monacoInstance: Monaco,
-    text: string
+    text: string,
   ) => {
-    const model = editorInstance.getModel();
-    if (!model) return;
+    const model = editorInstance.getModel()
+    if (!model) return
 
-    const metadataMatches: editor.IModelDeltaDecoration[] = [];
-    const regex = /--\s*(ref:|fetch:).*/gi;
-    let match: RegExpExecArray | null;
+    const metadataMatches: editor.IModelDeltaDecoration[] = []
+    const regex = /--\s*(ref:|fetch:).*/gi
+    let match: RegExpExecArray | null
 
     while ((match = regex.exec(text)) !== null) {
-      const startPos = model.getPositionAt(match.index);
-      const endPos = model.getPositionAt(match.index + match[0].length);
+      const startPos = model.getPositionAt(match.index)
+      const endPos = model.getPositionAt(match.index + match[0].length)
       metadataMatches.push({
         range: new monacoInstance.Range(
           startPos.lineNumber,
           startPos.column,
           endPos.lineNumber,
-          endPos.column
+          endPos.column,
         ),
         options: { inlineClassName: "metadata-token" },
-      });
+      })
     }
     decorationsRef.current = editorInstance.deltaDecorations(
       decorationsRef.current,
-      metadataMatches
-    );
-  };
+      metadataMatches,
+    )
+  }
 
   // Scroll and highlight
   useEffect(() => {
-    if (!highlightRequest || !editorRef.current || !monacoRef.current) return;
+    if (!highlightRequest || !editorRef.current || !monacoRef.current) return
 
-    const { line, col } = highlightRequest;
-    const editor = editorRef.current;
-    const monaco = monacoRef.current;
+    const { line, col } = highlightRequest
+    const editor = editorRef.current
+    const monaco = monacoRef.current
 
-    editor.revealLineInCenterIfOutsideViewport(line);
-    editor.setPosition({ lineNumber: line, column: col });
-    editor.focus();
+    editor.revealLineInCenterIfOutsideViewport(line)
+    editor.setPosition({ lineNumber: line, column: col })
+    editor.focus()
 
     // Create collection
     if (!highlightCollectionRef.current) {
-      highlightCollectionRef.current = editor.createDecorationsCollection();
+      highlightCollectionRef.current = editor.createDecorationsCollection()
     }
 
     highlightCollectionRef.current.set([
@@ -90,19 +89,19 @@ export const MonacoWrapper = ({
           className: "line-highlight-brief",
         },
       },
-    ]);
+    ])
 
     const timer = setTimeout(() => {
-      highlightCollectionRef.current?.clear();
-    }, 500);
+      highlightCollectionRef.current?.clear()
+    }, 500)
 
-    return () => clearTimeout(timer);
-  }, [highlightRequest]);
+    return () => clearTimeout(timer)
+  }, [highlightRequest])
 
   // Squiggly Lines (Markers)
   useEffect(() => {
     if (monacoRef.current && editorRef.current) {
-      const model = editorRef.current.getModel();
+      const model = editorRef.current.getModel()
       if (model) {
         const markers = validationErrors.map((err) => ({
           severity: 8,
@@ -111,44 +110,44 @@ export const MonacoWrapper = ({
           startColumn: err.startColumn,
           endLineNumber: err.endLineNumber,
           endColumn: err.endColumn,
-        }));
-        monacoRef.current.editor.setModelMarkers(model, "owner", markers);
+        }))
+        monacoRef.current.editor.setModelMarkers(model, "owner", markers)
       }
     }
-  }, [validationErrors]);
+  }, [validationErrors])
 
   useEffect(() => {
-    const monaco = monacoRef.current;
-    if (!monaco || !schemaTables) return;
+    const monaco = monacoRef.current
+    if (!monaco || !schemaTables) return
     if (completionDisposableRef.current)
-      completionDisposableRef.current.dispose();
+      completionDisposableRef.current.dispose()
 
     completionDisposableRef.current =
       monaco.languages.registerCompletionItemProvider("sql", {
         triggerCharacters: ["."],
         provideCompletionItems: (
           model: editor.ITextModel,
-          position: Position
+          position: Position,
         ) => {
-          const word = model.getWordUntilPosition(position);
+          const word = model.getWordUntilPosition(position)
           const range = {
             startLineNumber: position.lineNumber,
             endLineNumber: position.lineNumber,
             startColumn: word.startColumn,
             endColumn: word.endColumn,
-          };
+          }
           const textUntilCursor = model
             .getLineContent(position.lineNumber)
-            .substring(0, position.column - 1);
-          const isMemberAccess = textUntilCursor.trim().endsWith(".");
+            .substring(0, position.column - 1)
+          const isMemberAccess = textUntilCursor.trim().endsWith(".")
 
-          const suggestions: languages.CompletionItem[] = [];
+          const suggestions: languages.CompletionItem[] = []
 
           if (isMemberAccess) {
-            const match = textUntilCursor.match(/(\w+)[\s]*\.$/);
-            const tableName = match ? match[1] : null;
+            const match = textUntilCursor.match(/(\w+)[\s]*\.$/)
+            const tableName = match ? match[1] : null
             if (tableName) {
-              const table = schemaTables.find((n) => n.name === tableName);
+              const table = schemaTables.find((n) => n.name === tableName)
               if (table) {
                 table.columns.forEach((col) => {
                   suggestions.push({
@@ -157,8 +156,8 @@ export const MonacoWrapper = ({
                     insertText: col.name,
                     detail: `${col.type} (${table.name})`,
                     range: range,
-                  });
-                });
+                  })
+                })
               }
             }
           } else {
@@ -169,9 +168,9 @@ export const MonacoWrapper = ({
                 insertText: node.name,
                 detail: node.type === "view" ? "View" : "Table",
                 range: range,
-              });
-            });
-            [
+              })
+            })
+            ;[
               "SELECT",
               "FROM",
               "WHERE",
@@ -186,22 +185,22 @@ export const MonacoWrapper = ({
                 kind: monaco.languages.CompletionItemKind.Keyword,
                 insertText: kw,
                 range: range,
-              });
-            });
+              })
+            })
           }
-          return { suggestions };
+          return { suggestions }
         },
-      });
+      })
 
     return () => {
       if (completionDisposableRef.current)
-        completionDisposableRef.current.dispose();
-    };
-  }, [schemaTables]);
+        completionDisposableRef.current.dispose()
+    }
+  }, [schemaTables])
 
   const handleMount: OnMount = (editorInstance, monacoInstance) => {
-    editorRef.current = editorInstance;
-    monacoRef.current = monacoInstance;
+    editorRef.current = editorInstance
+    monacoRef.current = monacoInstance
 
     monacoInstance.editor.defineTheme("custom-light", {
       base: "vs",
@@ -211,29 +210,29 @@ export const MonacoWrapper = ({
         "editor.background": "#f2f2ed",
         "editor.lineHighlightBackground": "#e5e7eb",
       },
-    });
-    monacoInstance.editor.setTheme("custom-light");
+    })
+    monacoInstance.editor.setTheme("custom-light")
 
-    updateDecorations(editorInstance, monacoInstance, value);
+    updateDecorations(editorInstance, monacoInstance, value)
 
     if (onCursorChange) {
       editorInstance.onDidChangeCursorPosition((e) => {
-        onCursorChange(e.position.lineNumber, e.position.column);
-      });
+        onCursorChange(e.position.lineNumber, e.position.column)
+      })
     }
-  };
+  }
 
   useEffect(() => {
     if (editorRef.current && monacoRef.current)
-      updateDecorations(editorRef.current, monacoRef.current, value);
-  }, [value]);
+      updateDecorations(editorRef.current, monacoRef.current, value)
+  }, [value])
 
   const handleChange = (val: string | undefined) => {
-    const newValue = val || "";
-    onChange(newValue);
+    const newValue = val || ""
+    onChange(newValue)
     if (editorRef.current && monacoRef.current)
-      updateDecorations(editorRef.current, monacoRef.current, newValue);
-  };
+      updateDecorations(editorRef.current, monacoRef.current, newValue)
+  }
 
   return (
     <div
@@ -268,5 +267,5 @@ export const MonacoWrapper = ({
         }}
       />
     </div>
-  );
-};
+  )
+}

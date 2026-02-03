@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { SchemaBuilder } from "@schema-viz/SchemaBuilder";
+import { SchemaBuilder } from "@schema-viz/SchemaBuilder"
 
 const DEMO_SCHEMA = `CREATE TABLE users (
   id integer PRIMARY KEY,
@@ -42,20 +42,20 @@ ALTER TABLE posts ADD FOREIGN KEY (user_id) REFERENCES users (id);
 
 -- Custom Fetch Syntax:
 -- fetch: [users.email, posts.title, post_summary.author]
-`;
+`
 
 export default function DevPlayground() {
   const handleSave = async (newSchema: string) => {
-    console.log("Saving to backend...\n", newSchema);
+    console.log("Saving to backend...\n", newSchema)
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    alert("Saved! Check console for the string output.");
-  };
+    alert("Saved! Check console for the string output.")
+  }
 
   return (
     <main className="h-screen w-screen bg-black">
       <SchemaBuilder initialSchema={DEMO_SCHEMA} onSave={handleSave} />
     </main>
-  );
+  )
 }

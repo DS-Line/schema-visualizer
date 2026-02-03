@@ -1,7 +1,4 @@
-"use client";
-
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+"use client"
 
 import {
   AlertCircle,
@@ -17,15 +14,17 @@ import {
   PanelLeftOpen,
   RotateCcw,
   Save,
-} from "lucide-react";
+} from "lucide-react"
+import dynamic from "next/dynamic"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import { parseSchema } from "./lib/parser";
-import { SchemaError, SchemaRef, SchemaTable } from "./lib/types";
+import { parseSchema } from "./lib/parser"
+import type { SchemaError, SchemaRef, SchemaTable } from "./lib/types"
 
 const MonacoWrapper = dynamic(
   () =>
     import("./components/Editor/MonacoWrapper").then(
-      (mod) => mod.MonacoWrapper
+      (mod) => mod.MonacoWrapper,
     ),
   {
     ssr: false,
@@ -34,8 +33,8 @@ const MonacoWrapper = dynamic(
         <Loader2 className="animate-spin" />
       </div>
     ),
-  }
-);
+  },
+)
 const Canvas = dynamic(
   () => import("./components/SchemaCanvas/Canvas").then((mod) => mod.Canvas),
   {
@@ -45,25 +44,25 @@ const Canvas = dynamic(
         Loading Canvas...
       </div>
     ),
-  }
-);
+  },
+)
 
 interface SchemaBuilderProps {
-  initialSchema: string;
-  onSave: (schema: string) => Promise<void>;
-  readOnly?: boolean;
-  defaultCollapsed?: boolean;
-  defaultZoom?: number;
-  onGenerate?: (hasContent: boolean) => void;
-  isGenerating?: boolean;
-  onDirtyChange?: (isDirty: boolean) => void;
-  onCodeChange?: (code: string) => void;
-  onErrorChange?: (errors: SchemaError[]) => void;
+  initialSchema: string
+  onSave: (schema: string) => Promise<void>
+  readOnly?: boolean
+  defaultCollapsed?: boolean
+  defaultZoom?: number
+  onGenerate?: (hasContent: boolean) => void
+  isGenerating?: boolean
+  onDirtyChange?: (isDirty: boolean) => void
+  onCodeChange?: (code: string) => void
+  onErrorChange?: (errors: SchemaError[]) => void
 }
 
-const MIN_SIDEBAR_WIDTH = 300;
-const MAX_SIDEBAR_WIDTH = 800;
-const DEFAULT_SIDEBAR_WIDTH = 450;
+const MIN_SIDEBAR_WIDTH = 300
+const MAX_SIDEBAR_WIDTH = 800
+const DEFAULT_SIDEBAR_WIDTH = 450
 
 export const SchemaBuilder = ({
   initialSchema,
@@ -77,41 +76,41 @@ export const SchemaBuilder = ({
   onCodeChange,
   onErrorChange,
 }: SchemaBuilderProps) => {
-  const [code, setCode] = useState<string>(initialSchema);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [isCopied, setIsCopied] = useState<boolean>(false);
-  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
-  const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
-  const [isDirty, setIsDirty] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-  const [isResizing, setIsResizing] = useState(false);
+  const [code, setCode] = useState<string>(initialSchema)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [isCopied, setIsCopied] = useState<boolean>(false)
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false)
+  const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 })
+  const [isDirty, setIsDirty] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH)
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
+  const [isResizing, setIsResizing] = useState(false)
   const [highlightRequest, setHighlightRequest] = useState<{
-    line: number;
-    col: number;
-    ts: number;
-  } | null>(null);
+    line: number
+    col: number
+    ts: number
+  } | null>(null)
 
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const schemaData = useMemo(() => parseSchema(code), [code]);
+  const sidebarRef = useRef<HTMLDivElement>(null)
+  const schemaData = useMemo(() => parseSchema(code), [code])
 
   useEffect(() => {
     if (initialSchema !== undefined) {
-      setCode(initialSchema);
-      setIsDirty(false);
-      if (onDirtyChange) onDirtyChange(false);
+      setCode(initialSchema)
+      setIsDirty(false)
+      if (onDirtyChange) onDirtyChange(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialSchema]);
+  }, [initialSchema])
 
-  const hasContent = code.trim().length > 0;
+  const hasContent = code.trim().length > 0
   // schema throws empty warning only if the initial schema was not empty
   const isInvalidEmpty =
-    !hasContent && (isDirty || initialSchema.trim().length > 0);
+    !hasContent && (isDirty || initialSchema.trim().length > 0)
 
   // Combine parser errors with the potential empty error
   const effectiveErrors = useMemo(() => {
-    const errs = [...schemaData.errors];
+    const errs = [...schemaData.errors]
     if (isInvalidEmpty) {
       errs.unshift({
         message: "Schema cannot be empty",
@@ -119,101 +118,101 @@ export const SchemaBuilder = ({
         startColumn: 1,
         endLineNumber: 1,
         endColumn: 1,
-      });
+      })
     }
-    return errs;
-  }, [schemaData.errors, isInvalidEmpty]);
+    return errs
+  }, [schemaData.errors, isInvalidEmpty])
 
   useEffect(() => {
-    const dirty = code.trim() !== initialSchema.trim();
-    setIsDirty(dirty);
-    if (onDirtyChange) onDirtyChange(dirty);
-    if (onCodeChange) onCodeChange(code);
-    if (onErrorChange) onErrorChange(effectiveErrors);
+    const dirty = code.trim() !== initialSchema.trim()
+    setIsDirty(dirty)
+    if (onDirtyChange) onDirtyChange(dirty)
+    if (onCodeChange) onCodeChange(code)
+    if (onErrorChange) onErrorChange(effectiveErrors)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, initialSchema, effectiveErrors]);
+  }, [code, initialSchema, effectiveErrors])
 
   const handleSave = async () => {
-    setIsSaving(true);
+    setIsSaving(true)
     try {
-      await onSave(code);
+      await onSave(code)
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(code);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      await navigator.clipboard.writeText(code)
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 2000)
     } catch (err) {
-      console.error("Failed to copy", err);
+      console.error("Failed to copy", err)
     }
-  };
+  }
 
   const handleRemoveRef = useCallback(
     (ref: SchemaRef) => {
-      if (readOnly) return;
+      if (readOnly) return
       setCode((prevCode) => {
         const pattern = new RegExp(
           `--\\s*Ref:\\s*["\`]?${ref.fromTable}["\`]?\\.["\`]?${ref.fromCol}["\`]?\\s*[>=<\\-]\\s*["\`]?${ref.toTable}["\`]?\\.["\`]?${ref.toCol}["\`]?.*(\\r\\n|\\r|\\n)?`,
-          "gi"
-        );
-        return prevCode.replace(pattern, "").trim();
-      });
+          "gi",
+        )
+        return prevCode.replace(pattern, "").trim()
+      })
     },
-    [readOnly]
-  );
+    [readOnly],
+  )
 
   const handleSelectElement = useCallback((item: SchemaTable | SchemaRef) => {
-    setHighlightRequest({ line: item.line, col: item.column, ts: Date.now() });
-  }, []);
+    setHighlightRequest({ line: item.line, col: item.column, ts: Date.now() })
+  }, [])
 
-  const startResizing = useCallback(() => setIsResizing(true), []);
-  const stopResizing = useCallback(() => setIsResizing(false), []);
+  const startResizing = useCallback(() => setIsResizing(true), [])
+  const stopResizing = useCallback(() => setIsResizing(false), [])
   const resize = useCallback(
     (e: MouseEvent) => {
       if (isResizing && sidebarRef.current) {
         const newWidth =
-          e.clientX - sidebarRef.current.getBoundingClientRect().left;
+          e.clientX - sidebarRef.current.getBoundingClientRect().left
         if (newWidth < 100) {
-          setIsCollapsed(true);
-          setIsResizing(false);
+          setIsCollapsed(true)
+          setIsResizing(false)
         } else {
-          if (isCollapsed) setIsCollapsed(false);
+          if (isCollapsed) setIsCollapsed(false)
           setSidebarWidth(
-            Math.min(Math.max(newWidth, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH)
-          );
+            Math.min(Math.max(newWidth, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH),
+          )
         }
       }
     },
-    [isResizing, isCollapsed]
-  );
+    [isResizing, isCollapsed],
+  )
 
   useEffect(() => {
     if (isResizing) {
-      window.addEventListener("mousemove", resize);
-      window.addEventListener("mouseup", stopResizing);
+      window.addEventListener("mousemove", resize)
+      window.addEventListener("mouseup", stopResizing)
     }
     return () => {
-      window.removeEventListener("mousemove", resize);
-      window.removeEventListener("mouseup", stopResizing);
-    };
-  }, [isResizing, resize, stopResizing]);
+      window.removeEventListener("mousemove", resize)
+      window.removeEventListener("mouseup", stopResizing)
+    }
+  }, [isResizing, resize, stopResizing])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isFullScreen) setIsFullScreen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFullScreen]);
+      if (e.key === "Escape" && isFullScreen) setIsFullScreen(false)
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isFullScreen])
 
-  const firstError = effectiveErrors[0];
-  const hasErrors = effectiveErrors.length > 0;
+  const firstError = effectiveErrors[0]
+  const hasErrors = effectiveErrors.length > 0
   const canSave =
-    hasContent && !hasErrors && !isSaving && !isGenerating && isDirty;
+    hasContent && !hasErrors && !isSaving && !isGenerating && isDirty
 
   return (
     <div
@@ -278,10 +277,10 @@ export const SchemaBuilder = ({
                         isInvalidEmpty
                           ? "Schema cannot be empty"
                           : hasErrors
-                          ? "Fix schema errors before saving"
-                          : !isDirty
-                          ? "No changes to save"
-                          : "Save changes"
+                            ? "Fix schema errors before saving"
+                            : !isDirty
+                              ? "No changes to save"
+                              : "Save changes"
                       }
                     >
                       {isSaving ? (
@@ -438,5 +437,5 @@ export const SchemaBuilder = ({
         <div className="fixed inset-0 z-[9999] cursor-col-resize" />
       )}
     </div>
-  );
-};
+  )
+}

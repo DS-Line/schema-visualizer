@@ -1,13 +1,13 @@
-"use client";
+"use client"
 import {
   BaseEdge,
   EdgeLabelRenderer,
-  EdgeProps,
+  type EdgeProps,
   getBezierPath,
-} from "@xyflow/react";
-import { X } from "lucide-react";
-import React, { useState } from "react";
-
+} from "@xyflow/react"
+import { X } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
 
 export const CustomEdge = ({
   id,
@@ -22,7 +22,7 @@ export const CustomEdge = ({
   data,
   selected,
 }: EdgeProps) => {
-  const [isHovered, setIsHovered] = useState(false);
+  const [isHovered, setIsHovered] = useState(false)
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -30,23 +30,23 @@ export const CustomEdge = ({
     targetX,
     targetY,
     targetPosition,
-  });
+  })
 
   const onEdgeClick = (evt: React.MouseEvent) => {
-    evt.stopPropagation();
+    evt.stopPropagation()
     if (data?.onDelete && typeof data.onDelete === "function") {
-      data.onDelete();
+      data.onDelete()
     }
-  };
+  }
 
-  const isSystem = id.startsWith("sys-");
+  const isSystem = id.startsWith("sys-")
 
   // Todo: Update this Color
-  let strokeColor = isSystem ? "#94a3b8" : "#3b82f6"; // Default
+  let strokeColor = isSystem ? "#94a3b8" : "#3b82f6" // Default
   if (selected) {
-    strokeColor = isSystem ? "#475569" : "#2563eb"; // Selected (Darker)
+    strokeColor = isSystem ? "#475569" : "#2563eb" // Selected (Darker)
   } else if (isHovered) {
-    strokeColor = isSystem ? "#cbd5e1" : "#60a5fa"; // Hover (Lighter)
+    strokeColor = isSystem ? "#cbd5e1" : "#60a5fa" // Hover (Lighter)
   }
 
   const combinedStyle = {
@@ -54,7 +54,7 @@ export const CustomEdge = ({
     stroke: strokeColor,
     strokeWidth: selected || isHovered ? 3 : 2,
     transition: "stroke 0.2s, stroke-width 0.2s",
-  };
+  }
 
   return (
     <>
@@ -94,5 +94,5 @@ export const CustomEdge = ({
         </EdgeLabelRenderer>
       )}
     </>
-  );
-};
+  )
+}
