@@ -4,15 +4,13 @@ export interface SchemaCol {
   name: string
   type: string
   isPk: boolean
-  isFk: boolean
+  unique: boolean
+  not_null: boolean
 }
 
 export interface SchemaTable {
   name: string
   columns: SchemaCol[]
-  type: "table" | "view"
-  line: number
-  column: number
 }
 
 export interface SchemaRef {
@@ -21,9 +19,7 @@ export interface SchemaRef {
   fromCol: string
   toTable: string
   toCol: string
-  isSystem: boolean
-  line: number
-  column: number
+  relationType: ">" | "<" | "-" | "<>"
 }
 
 export interface SchemaError {
