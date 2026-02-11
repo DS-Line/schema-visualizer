@@ -39,9 +39,8 @@ export interface SchemaData {
 
 export type CustomNodeData = {
   table: SchemaTable
-  fetchedCols: Set<string>
 }
 
-export type CustomNodeType = Node<CustomNodeData, "customTable">
+export type CustomNodeType = Node<CustomNodeData, "tableNode">
 
 export type AppNode = CustomNodeType

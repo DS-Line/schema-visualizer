@@ -11,7 +11,7 @@ import { RefEdge } from "@/components/Visualizer/RefEdge"
 import { RefLine } from "@/components/Visualizer/RefLine"
 import { TableNode } from "@/components/Visualizer/TableNode"
 import { getLayoutedElements } from "@/lib/layout"
-import type { SchemaData } from "@/lib/types"
+import type { CustomNodeType, SchemaData } from "@/lib/types"
 import "@xyflow/react/dist/style.css"
 
 interface Props {
@@ -39,13 +39,14 @@ export default function DBMLVisualizer({
 }: Props) {
   const initialData = useMemo(() => {
     // Create base nodes with data
-    const baseNodes = data.tables.map((table) => ({
+    const baseNodes: CustomNodeType[] = data.tables.map((table) => ({
       id: table.name,
       type: "tableNode" as const,
       data: {
         table,
         selectedColumns,
         onColumnToggle,
+        fetchedCols: new Set<string>(), // Initialize empty set for fetched columns
       },
       position: { x: 0, y: 0 }, // Will be set by layout algorithm
     }))
@@ -112,7 +113,7 @@ export default function DBMLVisualizer({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        connectionLineComponent={RefLine}
+        connectionLineComponent={RefLine as any}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
