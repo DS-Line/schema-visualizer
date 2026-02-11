@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@dbml/core':
-        specifier: ^6.2.0
-        version: 6.2.0
+      '@dbml/parse':
+        specifier: 6.3.0-alpha.1
+        version: 6.3.0-alpha.1
       '@fontsource-variable/ibm-plex-sans':
         specifier: ^5.2.8
         version: 5.2.8
@@ -140,12 +140,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@dbml/core@6.2.0':
-    resolution: {integrity: sha512-RzEmLfNrMZ+j3f6JZrMvaesG7rnB16T2Q/B1xZiMnBT8ny6/llro2+bWVCn48fT4uWM5wU6wI8NLUf3Vdcyvsw==}
-    engines: {node: '>=16'}
-
-  '@dbml/parse@6.2.0':
-    resolution: {integrity: sha512-MG8AoeI1iIp5ONLSYSWAa+a363j+tsIM8PN5zv+PjCBI+bYjxjpAL/l3P5cL9KI7iUQJn7o70hUXA1ZIvY/Nkw==}
+  '@dbml/parse@6.3.0-alpha.1':
+    resolution: {integrity: sha512-A0CZmlhWkOnsYu2lO1e4/pcCwYz0kka2uBWGiz2C/MQG/WZtI0aRSVK8R8mgK9iE7/1DGMkFpuMd+Vecf5+Ukw==}
     engines: {node: '>=18'}
 
   '@esbuild/aix-ppc64@0.27.3':
@@ -1390,10 +1386,6 @@ packages:
   '@xyflow/system@0.0.74':
     resolution: {integrity: sha512-7v7B/PkiVrkdZzSbL+inGAo6tkR/WQHHG0/jhSvLQToCsfa8YubOGmBYd1s08tpKpihdHDZFwzQZeR69QSBb4Q==}
 
-  antlr4@4.13.2:
-    resolution: {integrity: sha512-QiVbZhyy4xAZ17UPEuG3YTOt8ZaoeOR1CvEAqrEsDBsOqINslaB147i9xqljZqoyf5S+EUlGStaj+t22LT9MOg==}
-    engines: {node: '>=16'}
-
   aria-hidden@1.2.6:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
     engines: {node: '>=10'}
@@ -1577,6 +1569,10 @@ packages:
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  luxon@3.7.2:
+    resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
+    engines: {node: '>=12'}
+
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -1593,19 +1589,12 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  parsimmon@1.18.1:
-    resolution: {integrity: sha512-u7p959wLfGAhJpSDJVYXoyMCXWYwHia78HhRBWqk7AIbxdmlrfdp5wX0l3xv/iTSH5HvhN9K7o26hwwpgS5Nmw==}
-
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
   picomatch@4.0.3:
     resolution: {integrity: sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==}
     engines: {node: '>=12'}
-
-  pluralize@8.0.0:
-    resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
-    engines: {node: '>=4'}
 
   postcss@8.5.6:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
@@ -1826,18 +1815,10 @@ snapshots:
   '@biomejs/cli-win32-x64@2.3.13':
     optional: true
 
-  '@dbml/core@6.2.0':
-    dependencies:
-      '@dbml/parse': 6.2.0
-      antlr4: 4.13.2
-      lodash: 4.17.23
-      lodash-es: 4.17.23
-      parsimmon: 1.18.1
-      pluralize: 8.0.0
-
-  '@dbml/parse@6.2.0':
+  '@dbml/parse@6.3.0-alpha.1':
     dependencies:
       lodash-es: 4.17.23
+      luxon: 3.7.2
 
   '@esbuild/aix-ppc64@0.27.3':
     optional: true
@@ -2985,8 +2966,6 @@ snapshots:
       d3-selection: 3.0.0
       d3-zoom: 3.0.0
 
-  antlr4@4.13.2: {}
-
   aria-hidden@1.2.6:
     dependencies:
       tslib: 2.8.1
@@ -3154,6 +3133,8 @@ snapshots:
     dependencies:
       react: 19.2.4
 
+  luxon@3.7.2: {}
+
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -3167,13 +3148,9 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  parsimmon@1.18.1: {}
-
   picocolors@1.1.1: {}
 
   picomatch@4.0.3: {}
-
-  pluralize@8.0.0: {}
 
   postcss@8.5.6:
     dependencies:

@@ -11,13 +11,23 @@ import {
   RotateCcw,
   Save,
 } from "lucide-react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import DBMLEditor from "@/components/Editor/DBMLEditor"
-import DBMLVisualizer from "@/components/Visualizer/DBMLVisualizer"
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { generateDBMLFromRefs } from "@/lib/generator"
-import { parseSchema } from "@/lib/parser"
-import type { SchemaRef } from "@/lib/types"
+import type { SchemaData, SchemaRef } from "@/lib/types"
 import { validateRelationship } from "@/lib/validation"
+
+const DBMLEditor = lazy(() => import("@/components/Editor/DBMLEditor"))
+const DBMLVisualizer = lazy(
+  () => import("@/components/Visualizer/DBMLVisualizer"),
+)
 
 interface SchemaBuilderProps {
   initialSchema: string
@@ -62,34 +72,75 @@ export const SchemaBuilder = ({
 
   const sidebarRef = useRef<HTMLDivElement>(null)
 
-  // Parse schema only once from initialSchema (DBML editor is readonly)
-  const baseSchemaData = useMemo(
-    () => parseSchema(initialSchema),
-    [initialSchema],
-  )
+  // Base schema parsed from DBML (loaded lazily so @dbml/core stays out of the main bundle)
+  const [baseSchemaData, setBaseSchemaData] = useState<SchemaData | null>(null)
 
   // Track refs separately for add/remove operations
   const [refs, setRefs] = useState<SchemaRef[]>([])
 
+  // Lazily load the DBML parser so that @dbml/core is code-split
+  useEffect(() => {
+    let cancelled = false
+
+    const loadSchema = async () => {
+      try {
+        const { parseSchema } = await import("@/lib/parser")
+        if (cancelled) return
+        const parsed = parseSchema(initialSchema)
+        setBaseSchemaData(parsed)
+      } catch (error) {
+        console.error("Failed to parse schema", error)
+        if (cancelled) {
+          return
+        }
+        const emptySchema: SchemaData = {
+          tables: [],
+          refs: [],
+          fetchedCols: new Set<string>(),
+          errors: [],
+        }
+        setBaseSchemaData(emptySchema)
+      }
+    }
+
+    loadSchema()
+
+    return () => {
+      cancelled = true
+    }
+  }, [initialSchema])
+
   // Initialize refs and selections when schema changes
   useEffect(() => {
+    if (!baseSchemaData) return
     setRefs(baseSchemaData.refs)
     initialSelectionsRef.current = new Set(initialSelectedColumns)
     setSelectedColumns(new Set(initialSelectedColumns))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseSchemaData.refs, initialSchema])
+  }, [baseSchemaData, initialSchema])
 
   // Combined schema data with live refs
   const schemaData = useMemo(
-    () => ({
-      ...baseSchemaData,
-      refs,
-    }),
+    () => {
+      const fallback: SchemaData = {
+        tables: [],
+        refs: [],
+        fetchedCols: new Set<string>(),
+        errors: [],
+      }
+
+      return {
+        ...(baseSchemaData ?? fallback),
+        refs,
+      }
+    },
     [baseSchemaData, refs],
   )
 
   // Track if refs or selected columns have changed
   const isDirty = useMemo(() => {
+    if (!baseSchemaData) return false
+
     // Check refs changes
     if (refs.length !== baseSchemaData.refs.length) return true
 
@@ -111,7 +162,7 @@ export const SchemaBuilder = ({
       !currentSelections.every((col, i) => col === initialSelections[i])
 
     return refsChanged || columnsChanged
-  }, [refs, baseSchemaData.refs, selectedColumns])
+  }, [refs, baseSchemaData, selectedColumns])
 
   // Column checkbox toggle handler
   const handleColumnToggle = useCallback(
@@ -189,7 +240,7 @@ export const SchemaBuilder = ({
 
       // Validate the relationship
       const validation = validateRelationship(
-        baseSchemaData.tables,
+        baseSchemaData?.tables ?? [],
         connection.source,
         connection.sourceHandle,
         connection.target,
@@ -244,7 +295,7 @@ export const SchemaBuilder = ({
 
       setRefs((prevRefs) => [...prevRefs, newRef])
     },
-    [refs, baseSchemaData.tables],
+    [refs, baseSchemaData],
   )
 
   // Sidebar resizing handlers
@@ -324,7 +375,9 @@ export const SchemaBuilder = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setRefs(baseSchemaData.refs)
+                    if (baseSchemaData) {
+                      setRefs(baseSchemaData.refs)
+                    }
                     setSelectedColumns(new Set(initialSelectionsRef.current))
                   }}
                   disabled={!isDirty}
@@ -360,7 +413,11 @@ export const SchemaBuilder = ({
 
             {/* Editor */}
             <div className="flex-1 relative flex flex-col overflow-hidden">
-              <DBMLEditor value={generateDBMLFromRefs(initialSchema, refs)} />
+              <Suspense fallback={<div className="w-full h-full bg-[#f2f2ed]" />}>
+                <DBMLEditor
+                  value={generateDBMLFromRefs(initialSchema, refs)}
+                />
+              </Suspense>
             </div>
 
             <div className="flex justify-between py-2 px-4 border-t border-[#BCBDBE] font-mono text-xs">
@@ -432,13 +489,15 @@ export const SchemaBuilder = ({
         )}
 
         {/* Visualizer */}
-        <DBMLVisualizer
-          data={schemaData}
-          onEdgeDelete={handleEdgeDelete}
-          onEdgeCreate={handleEdgeCreate}
-          selectedColumns={selectedColumns}
-          onColumnToggle={handleColumnToggle}
-        />
+        <Suspense fallback={<div className="w-full h-full bg-white" />}>
+          <DBMLVisualizer
+            data={schemaData}
+            onEdgeDelete={handleEdgeDelete}
+            onEdgeCreate={handleEdgeCreate}
+            selectedColumns={selectedColumns}
+            onColumnToggle={handleColumnToggle}
+          />
+        </Suspense>
       </div>
 
       {/* Resize overlay */}

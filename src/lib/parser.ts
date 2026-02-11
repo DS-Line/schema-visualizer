@@ -1,4 +1,5 @@
-import { Parser } from "@dbml/core"
+import type { Database, Ref as DbmlRef, Table as DbmlTable } from "@dbml/parse"
+import { Compiler } from "@dbml/parse"
 import type {
   SchemaCol,
   SchemaData,
@@ -23,49 +24,52 @@ export const parseSchema = (dbmlString: string): SchemaData => {
   const errors: SchemaError[] = []
 
   try {
-    const database = Parser.parse(dbmlString, "dbml")
+    const compiler = new Compiler()
+    compiler.setSource(dbmlString)
+    const database = compiler.parse.rawDb() as Database | undefined
 
-    tables = database.schemas.flatMap((schema) =>
-      schema.tables.map((table) => ({
-        name: table.name,
-        columns: table.fields.map((field) => {
-          // Handle type arguments (e.g., varchar(255))
-          let type = field.type.type_name
-          if (
-            field.type.args &&
-            Array.isArray(field.type.args) &&
-            field.type.args.length > 0
-          ) {
-            const args = field.type.args.map((arg: any) => arg.value).join(",")
-            type += `(${args})`
-          }
+    if (!database) {
+      return { tables, refs, fetchedCols, errors }
+    }
 
-          return {
-            name: field.name,
-            type: type,
-            isPk: field.pk || false,
-            unique: field.unique || false,
-            not_null: field.not_null || false,
-          }
-        }),
-      })),
-    )
-
-    refs = database.schemas.flatMap((schema) =>
-      schema.refs.map((ref, index) => {
-        const endpoint1 = ref.endpoints[0]
-        const endpoint2 = ref.endpoints[1]
+    // database.tables is already a flat list of tables
+    tables = (database.tables as DbmlTable[]).map((table) => ({
+      name: table.name,
+      columns: table.fields.map((field) => {
+        // Handle type arguments (e.g., varchar(255))
+        let type = field.type.type_name
+        if (
+          field.type.args &&
+          Array.isArray(field.type.args) &&
+          (field.type.args as unknown[]).length > 0
+        ) {
+          const args = (field.type.args as any[]).map((arg) => arg.value).join(",")
+          type += `(${args})`
+        }
 
         return {
-          id: `rel-${index}`,
-          fromTable: endpoint1.tableName,
-          fromCol: endpoint1.fieldNames[0],
-          toTable: endpoint2.tableName,
-          toCol: endpoint2.fieldNames[0],
-          relationType: ">" as const, // many-to-one by default
+          name: field.name,
+          type: type,
+          isPk: field.pk || false,
+          unique: field.unique || false,
+          not_null: field.not_null || false,
         }
       }),
-    )
+    }))
+
+    refs = (database.refs as DbmlRef[]).map((ref, index) => {
+      const endpoint1 = ref.endpoints[0]
+      const endpoint2 = ref.endpoints[1]
+
+      return {
+        id: `rel-${index}`,
+        fromTable: endpoint1.tableName,
+        fromCol: endpoint1.fieldNames[0],
+        toTable: endpoint2.tableName,
+        toCol: endpoint2.fieldNames[0],
+        relationType: ">" as const, // many-to-one by default
+      }
+    })
 
     console.log(tables)
     return { tables, refs, fetchedCols, errors }
