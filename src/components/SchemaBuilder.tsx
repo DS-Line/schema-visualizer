@@ -12,8 +12,8 @@ import {
   Save,
 } from "lucide-react"
 import {
-  Suspense,
   lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -120,22 +120,19 @@ export const SchemaBuilder = ({
   }, [baseSchemaData, initialSchema])
 
   // Combined schema data with live refs
-  const schemaData = useMemo(
-    () => {
-      const fallback: SchemaData = {
-        tables: [],
-        refs: [],
-        fetchedCols: new Set<string>(),
-        errors: [],
-      }
+  const schemaData = useMemo(() => {
+    const fallback: SchemaData = {
+      tables: [],
+      refs: [],
+      fetchedCols: new Set<string>(),
+      errors: [],
+    }
 
-      return {
-        ...(baseSchemaData ?? fallback),
-        refs,
-      }
-    },
-    [baseSchemaData, refs],
-  )
+    return {
+      ...(baseSchemaData ?? fallback),
+      refs,
+    }
+  }, [baseSchemaData, refs])
 
   // Track if refs or selected columns have changed
   const isDirty = useMemo(() => {
@@ -413,10 +410,10 @@ export const SchemaBuilder = ({
 
             {/* Editor */}
             <div className="flex-1 relative flex flex-col overflow-hidden">
-              <Suspense fallback={<div className="w-full h-full bg-[#f2f2ed]" />}>
-                <DBMLEditor
-                  value={generateDBMLFromRefs(initialSchema, refs)}
-                />
+              <Suspense
+                fallback={<div className="w-full h-full bg-[#f2f2ed]" />}
+              >
+                <DBMLEditor value={generateDBMLFromRefs(initialSchema, refs)} />
               </Suspense>
             </div>
 

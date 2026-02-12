@@ -43,7 +43,9 @@ export const parseSchema = (dbmlString: string): SchemaData => {
           Array.isArray(field.type.args) &&
           (field.type.args as unknown[]).length > 0
         ) {
-          const args = (field.type.args as any[]).map((arg) => arg.value).join(",")
+          const args = (field.type.args as any[])
+            .map((arg) => arg.value)
+            .join(",")
           type += `(${args})`
         }
 
