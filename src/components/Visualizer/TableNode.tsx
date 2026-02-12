@@ -1,8 +1,8 @@
 import { Handle, Position } from "@xyflow/react"
 import { KeyIcon, PanelsTopLeftIcon } from "lucide-react"
 import { memo } from "react"
-import { Checkbox } from "@/components/ui/checkbox"
-import type { SchemaTable } from "@/lib/types"
+import type { SchemaTable } from "../../lib/types"
+import { Checkbox } from "../ui/checkbox"
 
 interface Props {
   data: {

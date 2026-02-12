@@ -1,4 +1,4 @@
-import { SchemaBuilder } from "@/components/SchemaBuilder"
+import { SchemaBuilder } from "./components/SchemaBuilder"
 
 const sampleDBML = `// Tables
 

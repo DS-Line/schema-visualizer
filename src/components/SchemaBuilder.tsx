@@ -20,9 +20,9 @@ import {
   useRef,
   useState,
 } from "react"
-import { generateDBMLFromRefs } from "@/lib/generator"
-import type { SchemaData, SchemaRef } from "@/lib/types"
-import { validateRelationship } from "@/lib/validation"
+import { generateDBMLFromRefs } from "../lib/generator"
+import type { SchemaData, SchemaRef } from "../lib/types"
+import { validateRelationship } from "../lib/validation"
 
 const DBMLEditor = lazy(() => import("./Editor/DBMLEditor"))
 const DBMLVisualizer = lazy(() => import("./Visualizer/DBMLVisualizer"))
@@ -82,7 +82,7 @@ export const SchemaBuilder = ({
 
     const loadSchema = async () => {
       try {
-        const { parseSchema } = await import("@/lib/parser")
+        const { parseSchema } = await import("../lib/parser")
         if (cancelled) return
         const parsed = parseSchema(initialSchema)
         setBaseSchemaData(parsed)
@@ -115,7 +115,7 @@ export const SchemaBuilder = ({
     initialSelectionsRef.current = new Set(initialSelectedColumns)
     setSelectedColumns(new Set(initialSelectedColumns))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseSchemaData, initialSelectedColumns])
+  }, [baseSchemaData, initialSchema])
 
   // Combined schema data with live refs
   const schemaData = useMemo(() => {
@@ -334,7 +334,7 @@ export const SchemaBuilder = ({
   return (
     <div
       ref={sidebarRef}
-      className="flex flex-row bg-white text-gray-800 font-sans overflow-hidden border border-gray-200 shadow-sm select-none relative h-full w-full"
+      className="flex flex-row text-[#1F2227] font-sans overflow-hidden border border-[#BCBDBE] rounded select-none relative h-full w-full"
     >
       {/* LEFT SIDEBAR - DBML Editor */}
       <div

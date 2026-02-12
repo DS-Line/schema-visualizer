@@ -7,11 +7,11 @@ import {
   useNodesState,
 } from "@xyflow/react"
 import { useCallback, useEffect, useMemo } from "react"
-import { RefEdge } from "@/components/Visualizer/RefEdge"
-import { RefLine } from "@/components/Visualizer/RefLine"
-import { TableNode } from "@/components/Visualizer/TableNode"
-import { getLayoutedElements } from "@/lib/layout"
-import type { CustomNodeType, SchemaData } from "@/lib/types"
+import { getLayoutedElements } from "../../lib/layout"
+import type { CustomNodeType, SchemaData } from "../../lib/types"
+import { RefEdge } from "./RefEdge"
+import { RefLine } from "./RefLine"
+import { TableNode } from "./TableNode"
 import "@xyflow/react/dist/style.css"
 
 interface Props {
@@ -72,9 +72,7 @@ export default function DBMLVisualizer({
     }))
 
     // Apply sophisticated dagre layout algorithm
-    const layouted = getLayoutedElements(baseNodes, baseEdges, data.tables)
-
-    return layouted
+    return getLayoutedElements(baseNodes, baseEdges, data.tables)
   }, [data, onEdgeDelete, selectedColumns, onColumnToggle])
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialData.nodes)
