@@ -24,10 +24,8 @@ import { generateDBMLFromRefs } from "@/lib/generator"
 import type { SchemaData, SchemaRef } from "@/lib/types"
 import { validateRelationship } from "@/lib/validation"
 
-const DBMLEditor = lazy(() => import("@/components/Editor/DBMLEditor"))
-const DBMLVisualizer = lazy(
-  () => import("@/components/Visualizer/DBMLVisualizer"),
-)
+const DBMLEditor = lazy(() => import("./Editor/DBMLEditor"))
+const DBMLVisualizer = lazy(() => import("./Visualizer/DBMLVisualizer"))
 
 interface SchemaBuilderProps {
   initialSchema: string
@@ -117,7 +115,7 @@ export const SchemaBuilder = ({
     initialSelectionsRef.current = new Set(initialSelectedColumns)
     setSelectedColumns(new Set(initialSelectedColumns))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseSchemaData, initialSchema])
+  }, [baseSchemaData, initialSelectedColumns])
 
   // Combined schema data with live refs
   const schemaData = useMemo(() => {
