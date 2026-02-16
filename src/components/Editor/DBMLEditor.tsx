@@ -52,6 +52,7 @@ export default function DBMLEditor({ value }: Props) {
           "float",
           "double",
           "bigint",
+          "numeric",
           "smallint",
           "json",
           "uuid",
@@ -84,7 +85,7 @@ export default function DBMLEditor({ value }: Props) {
 
             // Type keywords
             [
-              /\b(int|integer|varchar|text|boolean|bool|timestamp|datetime|date|time|decimal|float|double|bigint|smallint|json|uuid)\b/,
+              /\b(int|integer|varchar|text|boolean|bool|timestamp|datetime|date|time|decimal|float|double|bigint|numeric|smallint|json|uuid)\b/,
               "type",
             ],
 
