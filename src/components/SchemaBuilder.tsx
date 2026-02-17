@@ -35,6 +35,12 @@ interface SchemaBuilderProps {
     refs: SchemaRef[]
     selectedColumns: string[]
   }) => Promise<void>
+  onChange?: (data: {
+    dbml: string
+    refs: SchemaRef[]
+    selectedColumns: string[]
+    isDirty: boolean
+  }) => void
   defaultCollapsed?: boolean
 }
 
@@ -46,6 +52,7 @@ export const SchemaBuilder = ({
   initialSchema,
   initialSelectedColumns = [],
   onSave,
+  onChange,
   defaultCollapsed = false,
 }: SchemaBuilderProps) => {
   const [isSaving, setIsSaving] = useState(false)
@@ -109,12 +116,12 @@ export const SchemaBuilder = ({
   }, [initialSchema])
 
   // Initialize refs and selections when schema changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: causes nested triggers
   useEffect(() => {
     if (!baseSchemaData) return
     setRefs(baseSchemaData.refs)
     initialSelectionsRef.current = new Set(initialSelectedColumns)
     setSelectedColumns(new Set(initialSelectedColumns))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseSchemaData, initialSchema])
 
   // Combined schema data with live refs
@@ -328,6 +335,20 @@ export const SchemaBuilder = ({
       window.removeEventListener("mouseup", stopResizing)
     }
   }, [isResizing, resize, stopResizing])
+
+  // Notify parent of changes
+  useEffect(() => {
+    if (!onChange || !baseSchemaData) return
+
+    const generatedDBML = generateDBMLFromRefs(initialSchema, refs)
+
+    onChange({
+      dbml: generatedDBML,
+      refs,
+      selectedColumns: Array.from(selectedColumns),
+      isDirty,
+    })
+  }, [refs, selectedColumns, isDirty, onChange, initialSchema, baseSchemaData])
 
   const canSave = isDirty && !isSaving
 

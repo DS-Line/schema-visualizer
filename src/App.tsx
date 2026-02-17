@@ -36,7 +36,12 @@ export default function App() {
     <div className="h-screen w-screen">
       <SchemaBuilder
         initialSchema={sampleDBML}
-        onSave={async (v) => console.log(v)}
+        onChange={(data) => {
+          console.log("Schema changed:", data)
+        }}
+        onSave={async (data) => {
+          console.log("Schema saved:", data)
+        }}
       />
     </div>
   )
