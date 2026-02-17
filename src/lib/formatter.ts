@@ -83,5 +83,5 @@ export const formatDBML = (
     parts.push(refs.map(formatRef).join("\n"))
   }
 
-  return parts.join("\n\n") + "\n"
+  return `${parts.join("\n\n")}\n`
 }

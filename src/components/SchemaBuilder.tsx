@@ -129,7 +129,7 @@ export const SchemaBuilder = ({
   // Keep selectedColumns in sync when controlled value changes from outside
   useEffect(() => {
     if (!isControlled) return
-    setSelectedColumns(new Set(value!.selectedColumns))
+    setSelectedColumns(new Set(value?.selectedColumns))
   }, [isControlled, value])
 
   // ─── Dirty tracking ───────────────────────────────────────────────────────
