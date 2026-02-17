@@ -37,6 +37,11 @@ export interface SchemaData {
   errors: SchemaError[]
 }
 
+export interface SchemaBuilderValue {
+  schema: string
+  selectedColumns: string[]
+}
+
 export type CustomNodeData = {
   table: SchemaTable
 }

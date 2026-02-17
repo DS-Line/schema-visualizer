@@ -1,7 +1,7 @@
 import { SchemaBuilder } from "./components/SchemaBuilder"
+import type { SchemaBuilderValue } from "./lib/types"
 
 const sampleDBML = `// Tables
-
 Table users {
   id        int      [pk, increment]
   name      varchar  [not null]
@@ -34,13 +34,17 @@ Ref: comments.user_id > users.id
 export default function App() {
   return (
     <div className="h-screen w-screen">
+      {/*
+        Uncontrolled — component owns state, parent just listens.
+        Swap `defaultValue` for `value` to go fully controlled.
+      */}
       <SchemaBuilder
-        initialSchema={sampleDBML}
-        onChange={(data) => {
-          console.log("Schema changed:", data)
+        defaultValue={{ schema: sampleDBML, selectedColumns: [] }}
+        onChange={(data: SchemaBuilderValue & { isDirty: boolean }) => {
+          console.log("changed", data)
         }}
         onSave={async (data) => {
-          console.log("Schema saved:", data)
+          console.log("saved", data)
         }}
       />
     </div>
