@@ -1,4 +1,5 @@
-import { Editor } from "@monaco-editor/react"
+import { Editor, type Monaco } from "@monaco-editor/react"
+import type { editor } from "monaco-editor"
 import { useRef } from "react"
 
 interface Props {
@@ -6,9 +7,12 @@ interface Props {
 }
 
 export default function DBMLEditor({ value }: Props) {
-  const monacoRef = useRef<any>(null)
+  const monacoRef = useRef<Monaco>(null)
 
-  const handleMount = (editor: any, monaco: any) => {
+  const handleMount = (
+    editor: editor.IStandaloneCodeEditor,
+    monaco: Monaco,
+  ) => {
     monacoRef.current = monaco
 
     // Register DBML language support

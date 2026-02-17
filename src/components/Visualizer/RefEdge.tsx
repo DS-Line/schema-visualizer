@@ -16,7 +16,6 @@ interface RefEdgeProps extends EdgeProps {
 
 export const RefEdge = memo<RefEdgeProps>(
   ({
-    id,
     sourceX,
     sourceY,
     sourcePosition,

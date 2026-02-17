@@ -21,20 +21,26 @@ import {
   useState,
 } from "react"
 import { generateDBMLFromRefs } from "../lib/generator"
-import type { SchemaData, SchemaRef } from "../lib/types"
+import type { SchemaBuilderValue, SchemaData, SchemaRef } from "../lib/types"
 import { validateRelationship } from "../lib/validation"
 
 const DBMLEditor = lazy(() => import("./Editor/DBMLEditor"))
 const DBMLVisualizer = lazy(() => import("./Visualizer/DBMLVisualizer"))
 
+interface SchemaBuilderChangeData extends SchemaBuilderValue {
+  refs: SchemaRef[]
+  isDirty: boolean
+}
+
 interface SchemaBuilderProps {
-  initialSchema: string
-  initialSelectedColumns?: string[]
-  onSave: (data: {
-    dbml: string
-    refs: SchemaRef[]
-    selectedColumns: string[]
-  }) => Promise<void>
+  /** Controlled mode — parent owns state. Sync whenever this changes. */
+  value?: SchemaBuilderValue
+  /** Uncontrolled mode — component owns state, seeded once on mount. */
+  defaultValue?: SchemaBuilderValue
+  /** Called on every change to refs or selectedColumns. */
+  onChange?: (data: SchemaBuilderChangeData) => void
+  /** Called when the user explicitly hits Save. */
+  onSave?: (data: SchemaBuilderChangeData) => Promise<void>
   defaultCollapsed?: boolean
 }
 
@@ -42,12 +48,27 @@ const MIN_SIDEBAR_WIDTH = 300
 const MAX_SIDEBAR_WIDTH = 800
 const DEFAULT_SIDEBAR_WIDTH = 450
 
+const EMPTY_VALUE: SchemaBuilderValue = { schema: "", selectedColumns: [] }
+
 export const SchemaBuilder = ({
-  initialSchema,
-  initialSelectedColumns = [],
+  value,
+  defaultValue,
+  onChange,
   onSave,
   defaultCollapsed = false,
 }: SchemaBuilderProps) => {
+  const isControlled = value !== undefined
+
+  // ─── Internal schema source ────────────────────────────────────────────────
+  // In uncontrolled mode this drives everything.
+  // In controlled mode we always read from `value` via the memo below.
+  const [internalValue, setInternalValue] = useState<SchemaBuilderValue>(
+    () => defaultValue ?? EMPTY_VALUE,
+  )
+
+  const activeValue = isControlled ? value! : internalValue
+
+  // ─── UI state ──────────────────────────────────────────────────────────────
   const [isSaving, setIsSaving] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH)
@@ -58,108 +79,114 @@ export const SchemaBuilder = ({
     message: string
   } | null>(null)
 
-  // Track selected text columns (up to 20)
-  const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
-    new Set(initialSelectedColumns),
-  )
-
-  // Store initial selections for dirty checking
-  const initialSelectionsRef = useRef<Set<string>>(
-    new Set(initialSelectedColumns),
-  )
-
   const sidebarRef = useRef<HTMLDivElement>(null)
 
-  // Base schema parsed from DBML (loaded lazily so @dbml/core stays out of the main bundle)
+  // ─── Parsed base schema ────────────────────────────────────────────────────
   const [baseSchemaData, setBaseSchemaData] = useState<SchemaData | null>(null)
 
-  // Track refs separately for add/remove operations
-  const [refs, setRefs] = useState<SchemaRef[]>([])
-
-  // Lazily load the DBML parser so that @dbml/core is code-split
   useEffect(() => {
+    if (!activeValue.schema) return
+
     let cancelled = false
 
-    const loadSchema = async () => {
+    const load = async () => {
       try {
         const { parseSchema } = await import("../lib/parser")
         if (cancelled) return
-        const parsed = parseSchema(initialSchema)
+        const parsed = parseSchema(activeValue.schema)
         setBaseSchemaData(parsed)
-      } catch (error) {
-        console.error("Failed to parse schema", error)
-        if (cancelled) {
-          return
-        }
-        const emptySchema: SchemaData = {
+        setRefs(parsed.refs)
+      } catch (err) {
+        console.error("[SchemaBuilder] Failed to parse schema:", err)
+        if (cancelled) return
+        setBaseSchemaData({
           tables: [],
           refs: [],
-          fetchedCols: new Set<string>(),
+          fetchedCols: new Set(),
           errors: [],
-        }
-        setBaseSchemaData(emptySchema)
+        })
+        setRefs([])
       }
     }
 
-    loadSchema()
-
+    load()
     return () => {
       cancelled = true
     }
-  }, [initialSchema])
+  }, [activeValue.schema])
 
-  // Initialize refs and selections when schema changes
+  // ─── Live refs (add / remove on canvas) ───────────────────────────────────
+  const [refs, setRefs] = useState<SchemaRef[]>([])
+
+  // ─── Selected columns ─────────────────────────────────────────────────────
+  // In uncontrolled mode we own this set locally.
+  // In controlled mode we derive it from `value` but still track it locally
+  // for immediate UI responsiveness — onChange keeps the parent in sync.
+  const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
+    () => new Set(activeValue.selectedColumns),
+  )
+
+  // Keep selectedColumns in sync when controlled value changes from outside
   useEffect(() => {
-    if (!baseSchemaData) return
-    setRefs(baseSchemaData.refs)
-    initialSelectionsRef.current = new Set(initialSelectedColumns)
-    setSelectedColumns(new Set(initialSelectedColumns))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseSchemaData, initialSchema])
+    if (!isControlled) return
+    setSelectedColumns(new Set(value?.selectedColumns))
+  }, [isControlled, value])
 
-  // Combined schema data with live refs
-  const schemaData = useMemo(() => {
-    const fallback: SchemaData = {
-      tables: [],
-      refs: [],
-      fetchedCols: new Set<string>(),
-      errors: [],
-    }
-
-    return {
-      ...(baseSchemaData ?? fallback),
-      refs,
-    }
-  }, [baseSchemaData, refs])
-
-  // Track if refs or selected columns have changed
+  // ─── Dirty tracking ───────────────────────────────────────────────────────
+  // Compare against the last parsed base schema (what was handed in as schema prop)
   const isDirty = useMemo(() => {
     if (!baseSchemaData) return false
 
-    // Check refs changes
     if (refs.length !== baseSchemaData.refs.length) return true
 
     const refsChanged = !refs.every((ref) =>
       baseSchemaData.refs.some(
-        (baseRef) =>
-          baseRef.fromTable === ref.fromTable &&
-          baseRef.fromCol === ref.fromCol &&
-          baseRef.toTable === ref.toTable &&
-          baseRef.toCol === ref.toCol,
+        (base) =>
+          base.fromTable === ref.fromTable &&
+          base.fromCol === ref.fromCol &&
+          base.toTable === ref.toTable &&
+          base.toCol === ref.toCol,
       ),
     )
 
-    // Check selected columns changes
-    const currentSelections = Array.from(selectedColumns).sort()
-    const initialSelections = Array.from(initialSelectionsRef.current).sort()
-    const columnsChanged =
-      currentSelections.length !== initialSelections.length ||
-      !currentSelections.every((col, i) => col === initialSelections[i])
+    const currentCols = Array.from(selectedColumns).sort()
+    const initialCols = [...activeValue.selectedColumns].sort()
+    const colsChanged =
+      currentCols.length !== initialCols.length ||
+      !currentCols.every((c, i) => c === initialCols[i])
 
-    return refsChanged || columnsChanged
-  }, [refs, baseSchemaData, selectedColumns])
+    return refsChanged || colsChanged
+  }, [refs, baseSchemaData, selectedColumns, activeValue.selectedColumns])
 
-  // Column checkbox toggle handler
+  // ─── Emit onChange whenever live state changes ─────────────────────────────
+  useEffect(() => {
+    if (!onChange || !baseSchemaData) return
+
+    onChange({
+      schema: generateDBMLFromRefs(baseSchemaData?.tables ?? [], refs),
+      selectedColumns: Array.from(selectedColumns),
+      refs,
+      isDirty,
+    })
+  }, [refs, selectedColumns, isDirty, onChange, baseSchemaData])
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+  const buildChangeData = useCallback(
+    (
+      overrideRefs?: SchemaRef[],
+      overrideCols?: Set<string>,
+    ): SchemaBuilderChangeData => ({
+      schema: generateDBMLFromRefs(
+        baseSchemaData?.tables ?? [],
+        overrideRefs ?? refs,
+      ),
+      selectedColumns: Array.from(overrideCols ?? selectedColumns),
+      refs: overrideRefs ?? refs,
+      isDirty,
+    }),
+    [baseSchemaData, refs, selectedColumns, isDirty],
+  )
+
   const handleColumnToggle = useCallback(
     (tableName: string, columnName: string) => {
       const key = `${tableName}.${columnName}`
@@ -170,7 +197,6 @@ export const SchemaBuilder = ({
         if (next.has(key)) {
           next.delete(key)
         } else {
-          // Check 20 column limit
           if (next.size >= 20) {
             setValidationMessage({
               type: "warning",
@@ -182,33 +208,35 @@ export const SchemaBuilder = ({
           next.add(key)
         }
 
+        // In uncontrolled mode keep internalValue in sync
+        if (!isControlled) {
+          setInternalValue((v) => ({
+            ...v,
+            selectedColumns: Array.from(next),
+          }))
+        }
+
         return next
       })
     },
-    [],
+    [isControlled],
   )
 
-  // Save handler
   const handleSave = async () => {
+    if (!onSave) return
     setIsSaving(true)
     try {
-      const generatedDBML = generateDBMLFromRefs(initialSchema, refs)
-
-      await onSave({
-        dbml: generatedDBML,
-        refs: refs,
-        selectedColumns: Array.from(selectedColumns),
-      })
+      await onSave(buildChangeData())
     } finally {
       setIsSaving(false)
     }
   }
 
-  // Copy to clipboard handler
   const handleCopy = async () => {
     try {
-      const generatedDBML = generateDBMLFromRefs(initialSchema, refs)
-      await navigator.clipboard.writeText(generatedDBML)
+      await navigator.clipboard.writeText(
+        generateDBMLFromRefs(baseSchemaData?.tables ?? [], refs),
+      )
       setIsCopied(true)
       setTimeout(() => setIsCopied(false), 2000)
     } catch (err) {
@@ -216,12 +244,22 @@ export const SchemaBuilder = ({
     }
   }
 
-  // Delete relationship handler
+  const handleReset = useCallback(() => {
+    if (baseSchemaData) setRefs(baseSchemaData.refs)
+    const resetCols = new Set(activeValue.selectedColumns)
+    setSelectedColumns(resetCols)
+    if (!isControlled) {
+      setInternalValue((v) => ({
+        ...v,
+        selectedColumns: activeValue.selectedColumns,
+      }))
+    }
+  }, [baseSchemaData, activeValue.selectedColumns, isControlled])
+
   const handleEdgeDelete = useCallback((refId: string) => {
-    setRefs((prevRefs) => prevRefs.filter((r) => r.id !== refId))
+    setRefs((prev) => prev.filter((r) => r.id !== refId))
   }, [])
 
-  // Create relationship handler with validation
   const handleEdgeCreate = useCallback(
     (connection: Connection) => {
       if (
@@ -229,11 +267,9 @@ export const SchemaBuilder = ({
         !connection.target ||
         !connection.sourceHandle ||
         !connection.targetHandle
-      ) {
+      )
         return
-      }
 
-      // Validate the relationship
       const validation = validateRelationship(
         baseSchemaData?.tables ?? [],
         connection.source,
@@ -251,7 +287,6 @@ export const SchemaBuilder = ({
         return
       }
 
-      // Check for duplicates
       const exists = refs.some(
         (ref) =>
           ref.fromTable === connection.source &&
@@ -269,31 +304,27 @@ export const SchemaBuilder = ({
         return
       }
 
-      // Show warning if present
       if (validation.warning) {
-        setValidationMessage({
-          type: "warning",
-          message: validation.warning,
-        })
+        setValidationMessage({ type: "warning", message: validation.warning })
         setTimeout(() => setValidationMessage(null), 5000)
       }
 
-      // Create new relationship
-      const newRef: SchemaRef = {
-        id: `rel-${Date.now()}`,
-        fromTable: connection.source,
-        fromCol: connection.sourceHandle,
-        toTable: connection.target,
-        toCol: connection.targetHandle,
-        relationType: ">",
-      }
-
-      setRefs((prevRefs) => [...prevRefs, newRef])
+      setRefs((prev) => [
+        ...prev,
+        {
+          id: `rel-${Date.now()}`,
+          fromTable: connection.source!,
+          fromCol: connection.sourceHandle!,
+          toTable: connection.target!,
+          toCol: connection.targetHandle!,
+          relationType: ">",
+        },
+      ])
     },
     [refs, baseSchemaData],
   )
 
-  // Sidebar resizing handlers
+  // ─── Sidebar resize ───────────────────────────────────────────────────────
   const startResizing = useCallback(() => setIsResizing(true), [])
   const stopResizing = useCallback(() => setIsResizing(false), [])
 
@@ -317,7 +348,6 @@ export const SchemaBuilder = ({
     [isResizing, isCollapsed],
   )
 
-  // Resize event listeners
   useEffect(() => {
     if (isResizing) {
       window.addEventListener("mousemove", resize)
@@ -329,7 +359,18 @@ export const SchemaBuilder = ({
     }
   }, [isResizing, resize, stopResizing])
 
-  const canSave = isDirty && !isSaving
+  // ─── Derived schema data passed to the visualizer ─────────────────────────
+  const schemaData = useMemo(() => {
+    const fallback: SchemaData = {
+      tables: [],
+      refs: [],
+      fetchedCols: new Set(),
+      errors: [],
+    }
+    return { ...(baseSchemaData ?? fallback), refs }
+  }, [baseSchemaData, refs])
+
+  const canSave = isDirty && !isSaving && !!onSave
 
   return (
     <div
@@ -354,27 +395,24 @@ export const SchemaBuilder = ({
               </div>
 
               <div className="flex gap-2 items-center">
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={!canSave}
-                  className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title={!isDirty ? "No changes to save" : "Save changes"}
-                >
-                  <Save size={16} />
-                  {isSaving && "Saving..."}
-                </button>
+                {onSave && (
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={!canSave}
+                    className="hover:bg-gray-200 cursor-pointer text-gray-500 px-3 py-1.5 rounded text-xs font-bold flex gap-2 items-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title={!isDirty ? "No changes to save" : "Save changes"}
+                  >
+                    <Save size={16} />
+                    {isSaving && "Saving..."}
+                  </button>
+                )}
 
                 <div className="h-4 w-px bg-gray-300 mx-1" />
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (baseSchemaData) {
-                      setRefs(baseSchemaData.refs)
-                    }
-                    setSelectedColumns(new Set(initialSelectionsRef.current))
-                  }}
+                  onClick={handleReset}
                   disabled={!isDirty}
                   className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors disabled:opacity-30"
                   title="Reset to original"
@@ -411,7 +449,12 @@ export const SchemaBuilder = ({
               <Suspense
                 fallback={<div className="w-full h-full bg-[#f2f2ed]" />}
               >
-                <DBMLEditor value={generateDBMLFromRefs(initialSchema, refs)} />
+                <DBMLEditor
+                  value={generateDBMLFromRefs(
+                    baseSchemaData?.tables ?? [],
+                    refs,
+                  )}
+                />
               </Suspense>
             </div>
 
@@ -439,7 +482,6 @@ export const SchemaBuilder = ({
 
       {/* RIGHT SIDE - Visualizer */}
       <div className="flex-1 h-full min-w-0 relative">
-        {/* Expand button when collapsed */}
         {isCollapsed && (
           <div className="absolute top-4 left-4 z-50">
             <button
@@ -483,7 +525,6 @@ export const SchemaBuilder = ({
           </div>
         )}
 
-        {/* Visualizer */}
         <Suspense fallback={<div className="w-full h-full bg-white" />}>
           <DBMLVisualizer
             data={schemaData}
@@ -495,7 +536,6 @@ export const SchemaBuilder = ({
         </Suspense>
       </div>
 
-      {/* Resize overlay */}
       {isResizing && <div className="fixed inset-0 z-9999 cursor-col-resize" />}
     </div>
   )

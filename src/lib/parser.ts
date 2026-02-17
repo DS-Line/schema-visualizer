@@ -1,21 +1,10 @@
-import type { Database, Ref as DbmlRef, Table as DbmlTable } from "@dbml/parse"
-import { Compiler } from "@dbml/parse"
-import type {
-  SchemaCol,
-  SchemaData,
-  SchemaError,
-  SchemaRef,
-  SchemaTable,
-} from "./types"
-
-// Convert character index to Line/Column
-const getLinePos = (text: string, index: number) => {
-  const substring = text.substring(0, index)
-  const lines = substring.split("\n")
-  const line = lines.length
-  const col = lines[lines.length - 1].length + 1
-  return { line, col }
-}
+import {
+  Compiler,
+  type Database,
+  type Ref as DbmlRef,
+  type Table as DbmlTable,
+} from "@dbml/parse"
+import type { SchemaData, SchemaError, SchemaRef, SchemaTable } from "./types"
 
 export const parseSchema = (dbmlString: string): SchemaData => {
   let tables: SchemaTable[] = []

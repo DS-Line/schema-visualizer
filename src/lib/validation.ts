@@ -1,4 +1,4 @@
-import type { SchemaCol, SchemaTable } from "./types"
+import type { SchemaTable } from "./types"
 
 /**
  * Checks if two column types are compatible for a relationship
