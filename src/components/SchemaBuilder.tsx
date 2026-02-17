@@ -163,19 +163,12 @@ export const SchemaBuilder = ({
     if (!onChange || !baseSchemaData) return
 
     onChange({
-      schema: generateDBMLFromRefs(activeValue.schema, refs),
+      schema: generateDBMLFromRefs(baseSchemaData?.tables ?? [], refs),
       selectedColumns: Array.from(selectedColumns),
       refs,
       isDirty,
     })
-  }, [
-    refs,
-    selectedColumns,
-    isDirty,
-    onChange,
-    activeValue.schema,
-    baseSchemaData,
-  ])
+  }, [refs, selectedColumns, isDirty, onChange, baseSchemaData])
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
   const buildChangeData = useCallback(
@@ -183,12 +176,15 @@ export const SchemaBuilder = ({
       overrideRefs?: SchemaRef[],
       overrideCols?: Set<string>,
     ): SchemaBuilderChangeData => ({
-      schema: generateDBMLFromRefs(activeValue.schema, overrideRefs ?? refs),
+      schema: generateDBMLFromRefs(
+        baseSchemaData?.tables ?? [],
+        overrideRefs ?? refs,
+      ),
       selectedColumns: Array.from(overrideCols ?? selectedColumns),
       refs: overrideRefs ?? refs,
       isDirty,
     }),
-    [activeValue.schema, refs, selectedColumns, isDirty],
+    [baseSchemaData, refs, selectedColumns, isDirty],
   )
 
   const handleColumnToggle = useCallback(
@@ -239,7 +235,7 @@ export const SchemaBuilder = ({
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(
-        generateDBMLFromRefs(activeValue.schema, refs),
+        generateDBMLFromRefs(baseSchemaData?.tables ?? [], refs),
       )
       setIsCopied(true)
       setTimeout(() => setIsCopied(false), 2000)
@@ -454,7 +450,10 @@ export const SchemaBuilder = ({
                 fallback={<div className="w-full h-full bg-[#f2f2ed]" />}
               >
                 <DBMLEditor
-                  value={generateDBMLFromRefs(activeValue.schema, refs)}
+                  value={generateDBMLFromRefs(
+                    baseSchemaData?.tables ?? [],
+                    refs,
+                  )}
                 />
               </Suspense>
             </div>
