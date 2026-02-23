@@ -24,6 +24,16 @@ import { generateDBMLFromRefs } from "../lib/generator"
 import type { SchemaBuilderValue, SchemaData, SchemaRef } from "../lib/types"
 import { validateRelationship } from "../lib/validation"
 
+function useStableCallback<T extends ((...args: any[]) => any) | undefined>(
+  fn: T,
+): T {
+  const ref = useRef(fn)
+  useEffect(() => {
+    ref.current = fn
+  })
+  return useCallback((...args: any[]) => ref.current?.(...args), []) as T
+}
+
 const DBMLEditor = lazy(() => import("./Editor/DBMLEditor"))
 const DBMLVisualizer = lazy(() => import("./Visualizer/DBMLVisualizer"))
 
@@ -59,12 +69,17 @@ const EMPTY_VALUE: SchemaBuilderValue = { schema: "", selectedColumns: [] }
 export const SchemaBuilder = ({
   value,
   defaultValue,
-  onChange,
-  onSave,
+  onChange: onChangeProp,
+  onSave: onSaveProp,
   defaultCollapsed = false,
   readonly = false,
 }: SchemaBuilderProps) => {
   const isControlled = value !== undefined
+
+  // Stabilize callbacks so inline arrow functions from consumers never cause
+  // useEffect dependency loops.
+  const onChange = useStableCallback(onChangeProp)
+  const onSave = useStableCallback(onSaveProp)
 
   // ─── Internal schema source ────────────────────────────────────────────────
   const [internalValue, setInternalValue] = useState<SchemaBuilderValue>(
