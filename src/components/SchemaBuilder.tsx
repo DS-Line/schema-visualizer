@@ -42,6 +42,12 @@ interface SchemaBuilderProps {
   /** Called when the user explicitly hits Save. */
   onSave?: (data: SchemaBuilderChangeData) => Promise<void>
   defaultCollapsed?: boolean
+  /**
+   * When true, the visualizer is read-only: no edges can be created or deleted,
+   * and column checkboxes are hidden. The DBML editor is always read-only
+   * regardless of this flag.
+   */
+  readonly?: boolean
 }
 
 const MIN_SIDEBAR_WIDTH = 300
@@ -56,12 +62,11 @@ export const SchemaBuilder = ({
   onChange,
   onSave,
   defaultCollapsed = false,
+  readonly = false,
 }: SchemaBuilderProps) => {
   const isControlled = value !== undefined
 
   // ─── Internal schema source ────────────────────────────────────────────────
-  // In uncontrolled mode this drives everything.
-  // In controlled mode we always read from `value` via the memo below.
   const [internalValue, setInternalValue] = useState<SchemaBuilderValue>(
     () => defaultValue ?? EMPTY_VALUE,
   )
@@ -119,21 +124,16 @@ export const SchemaBuilder = ({
   const [refs, setRefs] = useState<SchemaRef[]>([])
 
   // ─── Selected columns ─────────────────────────────────────────────────────
-  // In uncontrolled mode we own this set locally.
-  // In controlled mode we derive it from `value` but still track it locally
-  // for immediate UI responsiveness — onChange keeps the parent in sync.
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
     () => new Set(activeValue.selectedColumns),
   )
 
-  // Keep selectedColumns in sync when controlled value changes from outside
   useEffect(() => {
     if (!isControlled) return
     setSelectedColumns(new Set(value?.selectedColumns))
   }, [isControlled, value])
 
   // ─── Dirty tracking ───────────────────────────────────────────────────────
-  // Compare against the last parsed base schema (what was handed in as schema prop)
   const isDirty = useMemo(() => {
     if (!baseSchemaData) return false
 
@@ -189,6 +189,8 @@ export const SchemaBuilder = ({
 
   const handleColumnToggle = useCallback(
     (tableName: string, columnName: string) => {
+      if (readonly) return
+
       const key = `${tableName}.${columnName}`
 
       setSelectedColumns((prev) => {
@@ -208,7 +210,6 @@ export const SchemaBuilder = ({
           next.add(key)
         }
 
-        // In uncontrolled mode keep internalValue in sync
         if (!isControlled) {
           setInternalValue((v) => ({
             ...v,
@@ -219,7 +220,7 @@ export const SchemaBuilder = ({
         return next
       })
     },
-    [isControlled],
+    [isControlled, readonly],
   )
 
   const handleSave = async () => {
@@ -245,6 +246,7 @@ export const SchemaBuilder = ({
   }
 
   const handleReset = useCallback(() => {
+    if (readonly) return
     if (baseSchemaData) setRefs(baseSchemaData.refs)
     const resetCols = new Set(activeValue.selectedColumns)
     setSelectedColumns(resetCols)
@@ -254,14 +256,20 @@ export const SchemaBuilder = ({
         selectedColumns: activeValue.selectedColumns,
       }))
     }
-  }, [baseSchemaData, activeValue.selectedColumns, isControlled])
+  }, [baseSchemaData, activeValue.selectedColumns, isControlled, readonly])
 
-  const handleEdgeDelete = useCallback((refId: string) => {
-    setRefs((prev) => prev.filter((r) => r.id !== refId))
-  }, [])
+  const handleEdgeDelete = useCallback(
+    (refId: string) => {
+      if (readonly) return
+      setRefs((prev) => prev.filter((r) => r.id !== refId))
+    },
+    [readonly],
+  )
 
   const handleEdgeCreate = useCallback(
     (connection: Connection) => {
+      if (readonly) return
+
       if (
         !connection.source ||
         !connection.target ||
@@ -321,7 +329,7 @@ export const SchemaBuilder = ({
         },
       ])
     },
-    [refs, baseSchemaData],
+    [refs, baseSchemaData, readonly],
   )
 
   // ─── Sidebar resize ───────────────────────────────────────────────────────
@@ -370,7 +378,7 @@ export const SchemaBuilder = ({
     return { ...(baseSchemaData ?? fallback), refs }
   }, [baseSchemaData, refs])
 
-  const canSave = isDirty && !isSaving && !!onSave
+  const canSave = isDirty && !isSaving && !!onSave && !readonly
 
   return (
     <div
@@ -395,7 +403,7 @@ export const SchemaBuilder = ({
               </div>
 
               <div className="flex gap-2 items-center">
-                {onSave && (
+                {onSave && !readonly && (
                   <button
                     type="button"
                     onClick={handleSave}
@@ -408,17 +416,21 @@ export const SchemaBuilder = ({
                   </button>
                 )}
 
-                <div className="h-4 w-px bg-gray-300 mx-1" />
+                {!readonly && (
+                  <>
+                    <div className="h-4 w-px bg-gray-300 mx-1" />
 
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  disabled={!isDirty}
-                  className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors disabled:opacity-30"
-                  title="Reset to original"
-                >
-                  <RotateCcw size={16} />
-                </button>
+                    <button
+                      type="button"
+                      onClick={handleReset}
+                      disabled={!isDirty}
+                      className="p-1.5 hover:bg-gray-200 rounded text-gray-500 transition-colors disabled:opacity-30"
+                      title="Reset to original"
+                    >
+                      <RotateCcw size={16} />
+                    </button>
+                  </>
+                )}
 
                 <button
                   type="button"
@@ -461,9 +473,11 @@ export const SchemaBuilder = ({
             <div className="flex justify-between py-2 px-4 border-t border-[#BCBDBE] font-mono text-xs">
               <div className="inline-flex items-center gap-2">
                 <LockIcon className="size-3" />
-                Read-only
+                {readonly ? "Read-only" : "Read-only editor"}
               </div>
-              <div>Columns selected: {selectedColumns.size} of 20</div>
+              {!readonly && (
+                <div>Columns selected: {selectedColumns.size} of 20</div>
+              )}
             </div>
           </>
         )}
@@ -528,10 +542,11 @@ export const SchemaBuilder = ({
         <Suspense fallback={<div className="w-full h-full bg-white" />}>
           <DBMLVisualizer
             data={schemaData}
-            onEdgeDelete={handleEdgeDelete}
-            onEdgeCreate={handleEdgeCreate}
+            onEdgeDelete={readonly ? undefined : handleEdgeDelete}
+            onEdgeCreate={readonly ? undefined : handleEdgeCreate}
             selectedColumns={selectedColumns}
-            onColumnToggle={handleColumnToggle}
+            onColumnToggle={readonly ? undefined : handleColumnToggle}
+            readonly={readonly}
           />
         </Suspense>
       </div>

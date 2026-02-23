@@ -20,6 +20,7 @@ interface Props {
   onEdgeCreate?: (connection: Connection) => void
   selectedColumns?: Set<string>
   onColumnToggle?: (tableName: string, columnName: string) => void
+  readonly?: boolean
 }
 
 const nodeTypes = {
@@ -36,22 +37,21 @@ export default function DBMLVisualizer({
   onEdgeCreate,
   selectedColumns,
   onColumnToggle,
+  readonly = false,
 }: Props) {
   const initialData = useMemo(() => {
-    // Create base nodes with data
     const baseNodes: CustomNodeType[] = data.tables.map((table) => ({
       id: table.name,
       type: "tableNode" as const,
       data: {
         table,
         selectedColumns,
-        onColumnToggle,
-        fetchedCols: new Set<string>(), // Initialize empty set for fetched columns
+        onColumnToggle: readonly ? undefined : onColumnToggle,
+        fetchedCols: new Set<string>(),
       },
-      position: { x: 0, y: 0 }, // Will be set by layout algorithm
+      position: { x: 0, y: 0 },
     }))
 
-    // Create edges from relationships
     const baseEdges = (data.refs || []).map((ref) => ({
       id: ref.id,
       source: ref.fromTable,
@@ -67,18 +67,16 @@ export default function DBMLVisualizer({
       },
       data: {
         refId: ref.id,
-        onDelete: onEdgeDelete,
+        onDelete: readonly ? undefined : onEdgeDelete,
       },
     }))
 
-    // Apply sophisticated dagre layout algorithm
     return getLayoutedElements(baseNodes, baseEdges, data.tables)
-  }, [data, onEdgeDelete, selectedColumns, onColumnToggle])
+  }, [data, onEdgeDelete, selectedColumns, onColumnToggle, readonly])
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialData.nodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialData.edges)
 
-  // Update nodes and edges when data changes
   useEffect(() => {
     setNodes(initialData.nodes)
     setEdges(initialData.edges)
@@ -86,6 +84,8 @@ export default function DBMLVisualizer({
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      if (readonly) return
+
       if (
         !connection.source ||
         !connection.target ||
@@ -95,12 +95,11 @@ export default function DBMLVisualizer({
         return
       }
 
-      // Notify parent component about new connection
       if (onEdgeCreate) {
         onEdgeCreate(connection)
       }
     },
-    [onEdgeCreate],
+    [onEdgeCreate, readonly],
   )
 
   return (
@@ -110,8 +109,8 @@ export default function DBMLVisualizer({
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        connectionLineComponent={RefLine as any}
+        onConnect={readonly ? undefined : onConnect}
+        connectionLineComponent={readonly ? undefined : (RefLine as any)}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
@@ -124,6 +123,10 @@ export default function DBMLVisualizer({
         className="bg-white"
         minZoom={0.1}
         maxZoom={2}
+        // Disable all interaction that mutates the graph when readonly
+        nodesDraggable={!readonly}
+        nodesConnectable={!readonly}
+        elementsSelectable={!readonly}
       >
         <Controls
           showInteractive={false}

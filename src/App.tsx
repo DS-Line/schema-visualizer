@@ -46,6 +46,7 @@ export default function App() {
         onSave={async (data) => {
           console.log("saved", data)
         }}
+        readonly={true}
       />
     </div>
   )
