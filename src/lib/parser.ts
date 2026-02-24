@@ -62,10 +62,8 @@ export const parseSchema = (dbmlString: string): SchemaData => {
       }
     })
 
-    console.log(tables)
     return { tables, refs, fetchedCols, errors }
   } catch (e) {
-    console.error(e)
     return { tables, refs, fetchedCols, errors }
   }
 }
