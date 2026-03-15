@@ -1,88 +1,35 @@
+import {
+  DATE_TYPES,
+  FLOAT_TYPES,
+  INT_TYPES,
+  normalizeType,
+  TEXT_TYPES,
+  UUID_TYPES,
+} from "./column-utils"
 import type { SchemaTable } from "./types"
 
-/**
- * Checks if two column types are compatible for a relationship
- */
-export const areTypesCompatible = (type1: string, type2: string): boolean => {
-  // Normalize types (remove size/precision info)
-  const normalize = (type: string): string => {
-    return type
-      .replace(/\(.*?\)/g, "")
-      .trim()
-      .toLowerCase()
-  }
-
-  const norm1 = normalize(type1)
-  const norm2 = normalize(type2)
-
-  // Exact match
-  if (norm1 === norm2) return true
-
-  // Integer type compatibility
-  const intTypes = new Set([
-    "int",
-    "integer",
-    "bigint",
-    "smallint",
-    "tinyint",
-    "serial",
-    "bigserial",
-  ])
-
-  if (intTypes.has(norm1) && intTypes.has(norm2)) return true
-
-  // String type compatibility
-  const stringTypes = new Set([
-    "varchar",
-    "char",
-    "text",
-    "string",
-    "nvarchar",
-    "nchar",
-  ])
-
-  if (stringTypes.has(norm1) && stringTypes.has(norm2)) return true
-
-  // Float/decimal compatibility
-  const floatTypes = new Set([
-    "float",
-    "double",
-    "decimal",
-    "numeric",
-    "real",
-    "money",
-  ])
-
-  if (floatTypes.has(norm1) && floatTypes.has(norm2)) return true
-
-  // UUID compatibility
-  const uuidTypes = new Set(["uuid", "guid", "uniqueidentifier"])
-  if (uuidTypes.has(norm1) && uuidTypes.has(norm2)) return true
-
-  // Date/time compatibility
-  const dateTypes = new Set([
-    "date",
-    "datetime",
-    "timestamp",
-    "time",
-    "timestamptz",
-    "datetimeoffset",
-  ])
-
-  if (dateTypes.has(norm1) && dateTypes.has(norm2)) return true
-
-  return false
-}
-
-/**
- * Validates if a relationship can be created between two columns
- */
 export interface ValidationResult {
   valid: boolean
   error?: string
   warning?: string
 }
 
+/** Returns true if two column types are compatible for a relationship. */
+export const areTypesCompatible = (type1: string, type2: string): boolean => {
+  const norm1 = normalizeType(type1)
+  const norm2 = normalizeType(type2)
+
+  if (norm1 === norm2) return true
+  if (INT_TYPES.has(norm1) && INT_TYPES.has(norm2)) return true
+  if (TEXT_TYPES.has(norm1) && TEXT_TYPES.has(norm2)) return true
+  if (FLOAT_TYPES.has(norm1) && FLOAT_TYPES.has(norm2)) return true
+  if (UUID_TYPES.has(norm1) && UUID_TYPES.has(norm2)) return true
+  if (DATE_TYPES.has(norm1) && DATE_TYPES.has(norm2)) return true
+
+  return false
+}
+
+/** Validates whether a relationship can be created between two columns. */
 export const validateRelationship = (
   tables: SchemaTable[],
   sourceTable: string,
@@ -90,7 +37,6 @@ export const validateRelationship = (
   targetTable: string,
   targetCol: string,
 ): ValidationResult => {
-  // Prevent self-referencing relationships
   if (sourceTable === targetTable) {
     return {
       valid: false,
@@ -98,19 +44,14 @@ export const validateRelationship = (
     }
   }
 
-  // Find tables
   const srcTable = tables.find((t) => t.name === sourceTable)
   const tgtTable = tables.find((t) => t.name === targetTable)
 
-  if (!srcTable) {
+  if (!srcTable)
     return { valid: false, error: `Table "${sourceTable}" not found` }
-  }
-
-  if (!tgtTable) {
+  if (!tgtTable)
     return { valid: false, error: `Table "${targetTable}" not found` }
-  }
 
-  // Find columns
   const srcColumn = srcTable.columns.find((c) => c.name === sourceCol)
   const tgtColumn = tgtTable.columns.find((c) => c.name === targetCol)
 
@@ -120,7 +61,6 @@ export const validateRelationship = (
       error: `Column "${sourceCol}" not found in table "${sourceTable}"`,
     }
   }
-
   if (!tgtColumn) {
     return {
       valid: false,
@@ -128,7 +68,6 @@ export const validateRelationship = (
     }
   }
 
-  // Check if types are compatible
   if (!areTypesCompatible(srcColumn.type, tgtColumn.type)) {
     return {
       valid: false,
@@ -136,6 +75,5 @@ export const validateRelationship = (
     }
   }
 
-  // All checks passed
   return { valid: true }
 }
