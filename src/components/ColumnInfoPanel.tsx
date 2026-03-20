@@ -18,6 +18,7 @@ export function ColumnInfoPanel({
   const [progress, setProgress] = useState(100)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally mount-only — timer starts once
   useEffect(() => {
     if (!isEmpty) return
     const startTime = Date.now()
@@ -36,7 +37,6 @@ export function ColumnInfoPanel({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleClick = () => {
