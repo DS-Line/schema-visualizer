@@ -1,26 +1,36 @@
 import { type Edge, Position } from "@xyflow/react"
 import dagre from "dagre"
-
 import type { AppNode, SchemaTable } from "./types"
 
-const NODE_WIDTH = 350
-const HEADER_HEIGHT = 50
-const ROW_HEIGHT = 40
-const SPACING_X = 150 // Increased horizontal spacing between connected nodes
-const SPACING_Y = 100 // Increased vertical spacing
-const ISOLATED_SPACING_X = 80 // Spacing for isolated tables
+// These must stay in sync with TableNode's rendering constants
+export const NODE_WIDTH = 288 // w-72 = 18rem = 288px
+const HEADER_HEIGHT = 44 // pt-3 pb-2 + leading-4 text
+const ROW_HEIGHT = 26 // matches TableNode ROW_HEIGHT
+const COLLAPSE_THRESHOLD = 8 // matches TableNode COLLAPSE_THRESHOLD
+const COLLAPSE_BUTTON_HEIGHT = 32
+
+const CONNECTED_SPACING_X = 80 // vertical gap between nodes in the same rank
+const CONNECTED_SPACING_Y = 120 // horizontal gap between ranks
+const ISOLATED_SPACING_X = 80
 const ISOLATED_SPACING_Y = 80
-const ISOLATED_GRID_COLS = 4 // Reduced to 4 columns for better visibility
+const ISOLATED_GRID_COLS = 4
 
 /**
- * Calculate node height based on number of columns
+ * Estimates the rendered height of a table node.
+ * Accounts for the collapse button shown when columns exceed COLLAPSE_THRESHOLD.
  */
-const calculateNodeHeight = (columnCount: number): number => {
-  return HEADER_HEIGHT + columnCount * ROW_HEIGHT + 20
+const estimateNodeHeight = (columnCount: number): number => {
+  const visibleRows = Math.min(columnCount, COLLAPSE_THRESHOLD)
+  const hasCollapseButton = columnCount > COLLAPSE_THRESHOLD
+  return (
+    HEADER_HEIGHT +
+    visibleRows * ROW_HEIGHT +
+    (hasCollapseButton ? COLLAPSE_BUTTON_HEIGHT : 0)
+  )
 }
 
 /**
- * Layouts nodes using dagre for connected nodes and grid for isolated nodes
+ * Lays out nodes using dagre for connected nodes and a balanced grid for isolated nodes.
  */
 export const getLayoutedElements = (
   nodes: AppNode[],
@@ -29,91 +39,64 @@ export const getLayoutedElements = (
 ) => {
   const dagreGraph = new dagre.graphlib.Graph()
   dagreGraph.setDefaultEdgeLabel(() => ({}))
-
-  // Use Left-to-Right layout for better readability
   dagreGraph.setGraph({
     rankdir: "LR",
-    nodesep: SPACING_X,
-    ranksep: SPACING_Y,
+    nodesep: CONNECTED_SPACING_X,
+    ranksep: CONNECTED_SPACING_Y,
     marginx: 50,
     marginy: 50,
   })
 
-  // Separate Connected vs Isolated Nodes
   const connectedNodeIds = new Set<string>()
-  edges.forEach((edge) => {
+  for (const edge of edges) {
     connectedNodeIds.add(edge.source)
     connectedNodeIds.add(edge.target)
-  })
+  }
 
   const connectedNodes: AppNode[] = []
   const isolatedNodes: AppNode[] = []
-
-  nodes.forEach((node) => {
-    if (connectedNodeIds.has(node.id)) {
-      connectedNodes.push(node)
-    } else {
-      isolatedNodes.push(node)
-    }
-  })
+  for (const node of nodes) {
+    if (connectedNodeIds.has(node.id)) connectedNodes.push(node)
+    else isolatedNodes.push(node)
+  }
 
   // Layout connected nodes with dagre
-  connectedNodes.forEach((node) => {
-    const tableData = tables.find((t) => t.name === node.id)
-    const colCount = tableData ? tableData.columns.length : 1
-    const height = calculateNodeHeight(colCount)
+  for (const node of connectedNodes) {
+    const table = tables.find((t) => t.name === node.id)
+    const height = estimateNodeHeight(table?.columns.length ?? 1)
     dagreGraph.setNode(node.id, { width: NODE_WIDTH, height })
-  })
-
-  edges.forEach((edge) => {
+  }
+  for (const edge of edges) {
     dagreGraph.setEdge(edge.source, edge.target)
-  })
-
+  }
   dagre.layout(dagreGraph)
 
   let maxConnectedX = 0
-  let maxConnectedY = 0
-
-  // Apply dagre layout to connected nodes
   const layoutedConnectedNodes = connectedNodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id)
-
-    // Center the node at the dagre position
-    const x = nodeWithPosition.x - NODE_WIDTH / 2
-    const y = nodeWithPosition.y - nodeWithPosition.height / 2
-
-    maxConnectedX = Math.max(maxConnectedX, x + NODE_WIDTH)
-    maxConnectedY = Math.max(maxConnectedY, y + nodeWithPosition.height)
-
+    const { x, y, height } = dagreGraph.node(node.id)
+    const posX = x - NODE_WIDTH / 2
+    const posY = y - height / 2
+    maxConnectedX = Math.max(maxConnectedX, posX + NODE_WIDTH)
     return {
       ...node,
       targetPosition: Position.Left,
       sourcePosition: Position.Right,
-      position: { x, y },
+      position: { x: posX, y: posY },
     }
   })
 
-  // Layout isolated nodes in a grid to the right of connected nodes
-  const startX = connectedNodes.length > 0 ? maxConnectedX + SPACING_X * 2 : 0
-  const startY = 0
-
-  // Track height of each column for balanced grid
-  const columnHeights = new Array(ISOLATED_GRID_COLS).fill(startY)
+  // Layout isolated nodes in a balanced grid to the right of connected nodes
+  const startX =
+    connectedNodes.length > 0 ? maxConnectedX + CONNECTED_SPACING_Y * 2 : 0
+  const columnHeights = new Array<number>(ISOLATED_GRID_COLS).fill(0)
 
   const layoutedIsolatedNodes = isolatedNodes.map((node) => {
-    const tableData = tables.find((t) => t.name === node.id)
-    const colCount = tableData ? tableData.columns.length : 1
-    const height = calculateNodeHeight(colCount)
-
-    // Find column with minimum height for balanced layout
+    const table = tables.find((t) => t.name === node.id)
+    const height = estimateNodeHeight(table?.columns.length ?? 1)
     const colIndex = columnHeights.indexOf(Math.min(...columnHeights))
-
     const x = startX + colIndex * (NODE_WIDTH + ISOLATED_SPACING_X)
     const y = columnHeights[colIndex]
-
-    // Update column height
     columnHeights[colIndex] += height + ISOLATED_SPACING_Y
-
     return {
       ...node,
       targetPosition: Position.Left,
@@ -122,8 +105,5 @@ export const getLayoutedElements = (
     }
   })
 
-  return {
-    nodes: [...layoutedConnectedNodes, ...layoutedIsolatedNodes],
-    edges,
-  }
+  return { nodes: [...layoutedConnectedNodes, ...layoutedIsolatedNodes], edges }
 }

@@ -7,15 +7,18 @@ import {
 import { XIcon } from "lucide-react"
 import { memo, useState } from "react"
 
-interface RefEdgeProps extends EdgeProps {
+interface RelationshipEdgeProps extends EdgeProps {
   data?: {
     refId?: string
     onDelete?: (edgeId: string) => void
+    isSelected?: boolean
+    onSelect?: (edgeId: string) => void
   }
 }
 
-export const RefEdge = memo<RefEdgeProps>(
+export const RelationshipEdge = memo<RelationshipEdgeProps>(
   ({
+    id,
     sourceX,
     sourceY,
     sourcePosition,
@@ -25,8 +28,9 @@ export const RefEdge = memo<RefEdgeProps>(
     markerEnd,
     style,
     data,
-  }: RefEdgeProps) => {
+  }: RelationshipEdgeProps) => {
     const [isHovered, setIsHovered] = useState(false)
+    const isSelected = data?.isSelected ?? false
 
     const [edgePath, labelX, labelY] = getBezierPath({
       sourceX,
@@ -38,7 +42,6 @@ export const RefEdge = memo<RefEdgeProps>(
     })
 
     const onEdgeDelete = () => {
-      // Use the callback if provided
       if (data?.onDelete && data?.refId) {
         data.onDelete(data.refId)
       }
@@ -46,12 +49,16 @@ export const RefEdge = memo<RefEdgeProps>(
 
     return (
       <>
+        <style>{`@keyframes dash-flow { from { stroke-dashoffset: 24 } to { stroke-dashoffset: 0 } }`}</style>
+        <style>{`.arrow { filter: none }`}</style>
         {/** biome-ignore lint/a11y/noStaticElementInteractions: needed here */}
         <g
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
+          onClick={() => data?.onSelect?.(id)}
+          style={{ cursor: "pointer" }}
         >
-          {/* Invisible wider path for easier hover detection */}
+          {/* Invisible wider path for easier hover/click detection */}
           <path
             d={edgePath}
             fill="none"
@@ -66,14 +73,17 @@ export const RefEdge = memo<RefEdgeProps>(
             markerEnd={markerEnd}
             style={{
               ...style,
-              strokeWidth: 2,
-              stroke: "#35383D",
+              strokeWidth: isSelected ? 2.5 : 2,
+              stroke: isSelected ? "#4da6a6" : "#626468",
+              strokeDasharray: isSelected ? "8 4" : "none",
+              animation: isSelected ? "dash-flow 1s linear infinite" : "none",
+              transition: "stroke 0.15s ease, stroke-width 0.15s ease",
               pointerEvents: "none",
             }}
           />
         </g>
 
-        {/* Delete button - only show on hover */}
+        {/* Delete button — only shown on hover */}
         {isHovered && (
           <EdgeLabelRenderer>
             <button
@@ -87,7 +97,7 @@ export const RefEdge = memo<RefEdgeProps>(
                 transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
                 pointerEvents: "all",
               }}
-              className="cursor-pointer bg-gray-700 text-gray-300 rounded-full p-1"
+              className="cursor-pointer bg-red-10 text-white-1 rounded-full p-1"
             >
               <XIcon className="size-3" />
             </button>
@@ -98,4 +108,4 @@ export const RefEdge = memo<RefEdgeProps>(
   },
 )
 
-RefEdge.displayName = "RefEdge"
+RelationshipEdge.displayName = "RelationshipEdge"

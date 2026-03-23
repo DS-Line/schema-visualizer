@@ -13,13 +13,150 @@
   --color-foreground: var(--foreground);
   --font-sans: "Poppins";
   --font-mono: "IBM Plex Mono";
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Primary color - green */
+  --color-primary-1: rgb(231, 240, 236);
+  --color-primary-2: rgb(208, 224, 217);
+  --color-primary-3: rgb(184, 209, 199);
+  --color-primary-4: rgb(161, 194, 180);
+  --color-primary-5: rgb(137, 178, 161);
+  --color-primary-6: rgb(113, 163, 142);
+  --color-primary-7: rgb(90, 148, 123);
+  --color-primary-8: rgb(66, 133, 105);
+  --color-primary-9: rgb(43, 117, 86);
+  --color-primary-10: rgb(19, 102, 67);
+
+  /* Cream */
+  --color-cream-1: rgb(250, 249, 245);
+  --color-cream-2: rgb(250, 249, 245);
+  --color-cream-3: rgb(255, 254, 246);
+  --color-cream-4: rgb(255, 253, 243);
+  --color-cream-5: rgb(255, 253, 241);
+  --color-cream-6: rgb(255, 253, 238);
+  --color-cream-7: rgb(255, 252, 235);
+  --color-cream-8: rgb(255, 252, 232);
+  --color-cream-9: rgb(255, 251, 229);
+  --color-cream-10: rgb(255, 251, 226);
+
+  /* Violet */
+  --color-violet-1: rgb(241, 243, 252);
+  --color-violet-2: rgb(226, 231, 249);
+  --color-violet-3: rgb(212, 219, 246);
+  --color-violet-4: rgb(197, 206, 243);
+  --color-violet-5: rgb(183, 194, 241);
+  --color-violet-6: rgb(168, 182, 238);
+  --color-violet-7: rgb(154, 170, 235);
+  --color-violet-8: rgb(139, 158, 232);
+  --color-violet-9: rgb(125, 146, 229);
+  --color-violet-10: rgb(110, 134, 226);
+
+  /* Pink */
+  --color-pink-1: rgb(253, 241, 250);
+  --color-pink-2: rgb(251, 226, 245);
+  --color-pink-3: rgb(249, 212, 241);
+  --color-pink-4: rgb(247, 198, 236);
+  --color-pink-5: rgb(245, 184, 231);
+  --color-pink-6: rgb(243, 169, 226);
+  --color-pink-7: rgb(242, 155, 221);
+  --color-pink-8: rgb(240, 141, 217);
+  --color-pink-9: rgb(238, 127, 212);
+  --color-pink-10: rgb(236, 112, 207);
+
+  /* Orange */
+  --color-orange-1: rgb(255, 245, 236);
+  --color-orange-2: rgb(255, 235, 217);
+  --color-orange-3: rgb(255, 225, 198);
+  --color-orange-4: rgb(255, 216, 179);
+  --color-orange-5: rgb(255, 206, 160);
+  --color-orange-6: rgb(255, 196, 141);
+  --color-orange-7: rgb(255, 186, 121);
+  --color-orange-8: rgb(255, 176, 102);
+  --color-orange-9: rgb(255, 166, 83);
+  --color-orange-10: rgb(255, 156, 64);
+
+  /* Black */
+  --color-black-1: rgb(233, 233, 233);
+  --color-black-2: rgb(210, 211, 212);
+  --color-black-3: rgb(188, 189, 190);
+  --color-black-4: rgb(165, 167, 169);
+  --color-black-5: rgb(143, 144, 147);
+  --color-black-6: rgb(121, 122, 125);
+  --color-black-7: rgb(98, 100, 104);
+  --color-black-8: rgb(76, 78, 82);
+  --color-black-9: rgb(53, 56, 61);
+  --color-black-10: rgb(31, 34, 39);
+
+  /* White */
+  --color-white-1: rgb(255, 255, 255);
+  --color-white-2: rgb(252, 252, 252);
+  --color-white-3: rgb(251, 251, 251);
+  --color-white-4: rgb(250, 250, 250);
+  --color-white-5: rgb(249, 249, 249);
+  --color-white-6: rgb(247, 247, 247);
+  --color-white-7: rgb(246, 246, 246);
+  --color-white-8: rgb(245, 245, 245);
+  --color-white-9: rgb(243, 243, 243);
+  --color-white-10: rgb(242, 242, 242);
+
+  /* Red */
+  --color-red-1: rgb(252, 236, 236);
+  --color-red-2: rgb(249, 216, 216);
+  --color-red-3: rgb(246, 197, 197);
+  --color-red-4: rgb(243, 178, 178);
+  --color-red-5: rgb(241, 159, 159);
+  --color-red-6: rgb(238, 139, 139);
+  --color-red-7: rgb(235, 120, 120);
+  --color-red-8: rgb(232, 101, 101);
+  --color-red-9: rgb(229, 81, 81);
+  --color-red-10: rgb(226, 62, 62);
+
+  /* Blue */
+  --color-blue-1: rgb(230, 239, 246);
+  --color-blue-2: rgb(206, 224, 238);
+  --color-blue-3: rgb(181, 208, 229);
+  --color-blue-4: rgb(157, 193, 221);
+  --color-blue-5: rgb(132, 177, 212);
+  --color-blue-6: rgb(107, 162, 203);
+  --color-blue-7: rgb(83, 146, 195);
+  --color-blue-8: rgb(58, 131, 186);
+  --color-blue-9: rgb(34, 116, 178);
+  --color-blue-10: rgb(9, 100, 169);
+
+  /* Teal */
+  --color-teal-1: rgb(229, 242, 242);
+  --color-teal-2: rgb(204, 230, 230);
+  --color-teal-3: rgb(178, 217, 217);
+  --color-teal-4: rgb(153, 204, 204);
+  --color-teal-5: rgb(128, 191, 191);
+  --color-teal-6: rgb(102, 179, 179);
+  --color-teal-7: rgb(77, 166, 166);
+  --color-teal-8: rgb(51, 153, 153);
+  --color-teal-9: rgb(26, 141, 141);
+  --color-teal-10: rgb(0, 128, 128);
+
+  /* Purple */
+  --color-purple-1: rgb(241, 238, 246);
+  --color-purple-2: rgb(228, 220, 238);
+  --color-purple-3: rgb(214, 203, 229);
+  --color-purple-4: rgb(201, 185, 221);
+  --color-purple-5: rgb(187, 168, 212);
+  --color-purple-6: rgb(174, 151, 203);
+  --color-purple-7: rgb(160, 133, 195);
+  --color-purple-8: rgb(147, 116, 186);
+  --color-purple-9: rgb(133, 98, 178);
+  --color-purple-10: rgb(120, 81, 169);
+
+  /* Light-green */
+  --color-light-green-1: rgb(234, 247, 233);
+  --color-light-green-2: rgb(214, 240, 212);
+  --color-light-green-3: rgb(193, 232, 190);
+  --color-light-green-4: rgb(173, 225, 169);
+  --color-light-green-5: rgb(152, 217, 147);
+  --color-light-green-6: rgb(132, 209, 126);
+  --color-light-green-7: rgb(111, 202, 104);
+  --color-light-green-8: rgb(90, 194, 83);
+  --color-light-green-9: rgb(70, 187, 61);
+  --color-light-green-10: rgb(49, 179, 40);
 }
 
 body {

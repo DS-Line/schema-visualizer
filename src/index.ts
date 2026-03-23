@@ -1,7 +1,7 @@
-export { SchemaBuilder } from "./components/SchemaBuilder"
+export { SchemaEditor } from "./components/SchemaEditor"
 export type {
-  SchemaBuilderValue,
   SchemaData,
+  SchemaEditorValue,
   SchemaRef,
   SchemaTable,
 } from "./lib/types"

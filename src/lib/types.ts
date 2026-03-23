@@ -33,13 +33,12 @@ export interface SchemaError {
 export interface SchemaData {
   tables: SchemaTable[]
   refs: SchemaRef[]
-  fetchedCols: Set<string>
   errors: SchemaError[]
 }
 
-export interface SchemaBuilderValue {
+export interface SchemaEditorValue {
   schema: string
-  selectedColumns: string[]
+  cachedColumns: string[]
 }
 
 export type CustomNodeData = {
@@ -48,4 +47,5 @@ export type CustomNodeData = {
 
 export type CustomNodeType = Node<CustomNodeData, "tableNode">
 
+/** @deprecated Use CustomNodeType directly */
 export type AppNode = CustomNodeType

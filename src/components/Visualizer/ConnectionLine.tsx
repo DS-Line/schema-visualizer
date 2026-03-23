@@ -1,6 +1,7 @@
 import { type ConnectionLineComponent, getBezierPath } from "@xyflow/react"
+import { NODE_WIDTH } from "../../lib/layout"
 
-export const RefLine: ConnectionLineComponent = ({
+export const ConnectionLine: ConnectionLineComponent = ({
   fromX,
   fromY,
   toX,
@@ -9,28 +10,14 @@ export const RefLine: ConnectionLineComponent = ({
   toPosition,
   toNode,
 }) => {
-  const handleWidth = 288
-
-  let adjustedFromX = fromX
-  let adjustedToX = toX
-
-  // Always adjust the start point
-  if (toX > fromX) {
-    adjustedFromX = fromX + handleWidth / 2
-  } else {
-    adjustedFromX = fromX - handleWidth / 2
-  }
-
-  // Only adjust the end point if hovering over a target node
-  if (toNode) {
-    if (toX > fromX) {
-      adjustedToX = toX - handleWidth / 2
-    } else {
-      adjustedToX = toX + handleWidth / 2
-    }
-  } else {
-    adjustedToX = toX
-  }
+  // Adjust x coordinates from the full-width handle to the node edge
+  const adjustedFromX =
+    toX > fromX ? fromX + NODE_WIDTH / 2 : fromX - NODE_WIDTH / 2
+  const adjustedToX = toNode
+    ? toX > fromX
+      ? toX - NODE_WIDTH / 2
+      : toX + NODE_WIDTH / 2
+    : toX
 
   const [edgePath] = getBezierPath({
     sourceX: adjustedFromX,
@@ -45,7 +32,7 @@ export const RefLine: ConnectionLineComponent = ({
     <g>
       <path
         fill="none"
-        stroke="#35383D"
+        stroke="#4da6a6"
         strokeWidth={2}
         className="animated"
         d={edgePath}
@@ -55,7 +42,7 @@ export const RefLine: ConnectionLineComponent = ({
         cy={toY}
         fill="#fff"
         r={3}
-        stroke="#35383D"
+        stroke="#4da6a6"
         strokeWidth={1.5}
       />
     </g>
