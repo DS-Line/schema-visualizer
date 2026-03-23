@@ -83,7 +83,7 @@ export const TableNode = memo<Props>(({ data }) => {
 
       {/* Rows container — fixed height clips hidden rows; rows animate via `top` */}
       <div
-        className="relative overflow-hidden"
+        className="relative overflow-hidden bg-white-1"
         style={{
           height: `${visibleCount * ROW_HEIGHT}px`,
           transition: "height 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -130,9 +130,9 @@ export const TableNode = memo<Props>(({ data }) => {
               <div className="flex-1 flex justify-between px-4 py-1 gap-2 min-w-0">
                 <div
                   className={cn(
-                    "pointer-events-none relative z-10 group-hover:text-accent truncate",
+                    "pointer-events-none relative z-10 group-hover:text-teal-7 truncate",
                     col.isPk && "font-bold",
-                    selectedRefCols?.has(col.name) && "text-accent",
+                    selectedRefCols?.has(col.name) && "text-teal-7",
                   )}
                 >
                   {col.name}

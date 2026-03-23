@@ -262,7 +262,7 @@ export default function SchemaVisualizer({
             ...e,
             markerEnd: {
               type: MarkerType.Arrow,
-              color: e.id === next ? "var(--color-accent)" : "#35383D",
+              color: e.id === next ? "#4DA6A6" : "#626468",
               strokeWidth: 2,
             },
           })),
