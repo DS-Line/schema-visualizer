@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { cn } from "../lib/utils"
-import Icon from "./ico-icons/icon"
+import { Icons } from "./icons"
 
 interface Props {
   cachedColumns: Set<string>
@@ -59,7 +59,7 @@ export function ColumnInfoPanel({
           open ? "text-teal-7" : "text-black-5 hover:text-black-10 ",
         )}
       >
-        <Icon size={20} icon="Info" />
+        <Icons.info className="size-5" />
       </button>
 
       {open && (
