@@ -14,7 +14,7 @@ import { parseSchema } from "../lib/parser"
 import type { SchemaData, SchemaEditorValue, SchemaRef } from "../lib/types"
 import { validateRelationship } from "../lib/validation"
 import { ColumnInfoPanel } from "./ColumnInfoPanel"
-import Icon from "./ico-icons/icon"
+import { Icons } from "./icons"
 import { Toast } from "./ui/toast"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -351,7 +351,7 @@ export const SchemaEditor = ({
           <>
             <div className="h-12 flex items-center justify-between px-3 border-b border-black-3 shrink-0 overflow-hidden">
               <div className="flex items-center gap-2 truncate text-black-10">
-                <Icon icon="Data" size={16} />
+                <Icons.data className="size-4" />
                 <span className="hidden sm:inline font-medium">SCHEMA</span>
               </div>
               <button
@@ -360,7 +360,7 @@ export const SchemaEditor = ({
                 className="flex"
                 title="Collapse Editor"
               >
-                <Icon icon="Collapse" size={16} />
+                <Icons.collapse className="size-4" />
               </button>
             </div>
 
@@ -375,7 +375,7 @@ export const SchemaEditor = ({
 
             <div className="flex justify-between py-2 px-4 border-t border-black-3 text-xs">
               <div className="inline-flex items-center gap-2">
-                <Icon size={12} icon="Lock" />
+                <Icons.lock className="size-3" />
                 Read-only
               </div>
             </div>
@@ -404,7 +404,7 @@ export const SchemaEditor = ({
               className="text-black-5  hover:text-black-10 transition-colors"
               title="Expand Editor"
             >
-              <Icon icon="Expand" size={20} />
+              <Icons.expand className="size-5" />
             </button>
           </div>
         )}

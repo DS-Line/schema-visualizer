@@ -1,7 +1,7 @@
 import { Panel, useReactFlow, useViewport } from "@xyflow/react"
 import { Maximize2Icon, Minimize2Icon, ScanIcon } from "lucide-react"
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react"
-import Icon from "../ico-icons/icon"
+import { Icons } from "../icons"
 
 // Snap to clean percentage levels on each zoom step
 const ZOOM_LEVELS = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4]
@@ -88,7 +88,7 @@ export function VisualizerControls({
           onClick={() => zoomTo(getNextZoom(zoom, "out"), { duration: 200 })}
           className={btnClass}
         >
-          <Icon icon="Zoom-out" size={16} />
+          <Icons.zoomOut className="size-4" />
         </button>
 
         <span className="w-12 text-center text-gray-700 tabular-nums select-none">
@@ -101,7 +101,7 @@ export function VisualizerControls({
           onClick={() => zoomTo(getNextZoom(zoom, "in"), { duration: 200 })}
           className={btnClass}
         >
-          <Icon icon="Zoom-in" size={16} />
+          <Icons.zoomIn className="size-4" />
         </button>
 
         <div className="w-px h-4 bg-black-3" />
