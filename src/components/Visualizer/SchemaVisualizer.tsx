@@ -81,7 +81,7 @@ export default function SchemaVisualizer({
   const refsRef = useRef(data.refs)
   refsRef.current = data.refs
 
-  // Layout: only recalculates when the table list changes.
+  // Layout: recalculates when tables change or when a node is expanded/collapsed.
   // Ref changes (add/remove relationship) do NOT trigger re-layout,
   // so manually arranged node positions are preserved.
   const layoutData = useMemo(() => {
@@ -108,8 +108,8 @@ export default function SchemaVisualizer({
       data: { refId: ref.id },
     }))
 
-    return getLayoutedElements(baseNodes, baseEdges, data.tables)
-  }, [data.tables])
+    return getLayoutedElements(baseNodes, baseEdges, data.tables, collapsedTables)
+  }, [data.tables, collapsedTables])
 
   // Edges: recalculates when refs change. Does not affect node positions.
   const computedEdges = useMemo(
