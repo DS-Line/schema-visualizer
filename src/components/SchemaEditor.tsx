@@ -387,10 +387,10 @@ export const SchemaEditor = ({
       {!isCollapsed && (
         // biome-ignore lint/a11y/noStaticElementInteractions: drag handle
         <div
-          className="w-1 cursor-col-resize z-20 flex items-center justify-center group transition-colors delay-75 hover:delay-0 border-l border-gray-300"
+          className="w-2 -translate-x-1/2 cursor-col-resize z-20 flex items-center justify-center group transition-colors delay-75 hover:delay-0"
           onMouseDown={() => setIsResizing(true)}
         >
-          <div className="h-12 w-2 bg-gray-300 rounded-full group-hover:bg-white transition-colors -translate-x-px" />
+          <div className="h-12 w-2 bg-gray-300 rounded-full group-hover:bg-white transition-colors" />
         </div>
       )}
 
