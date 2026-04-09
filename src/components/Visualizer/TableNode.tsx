@@ -147,7 +147,7 @@ export const TableNode = memo<Props>(({ data }) => {
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => onColumnToggle(table.name, col.name)}
-                    className="pointer-events-auto cursor-pointer"
+                    className="pointer-events-auto cursor-pointer data-[state=checked]:bg-teal-7!"
                   />
                 )}
               </div>
