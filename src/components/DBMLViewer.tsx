@@ -24,6 +24,7 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
   const decorationsRef = useRef<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [contentHeight, setContentHeight] = useState(200)
+  const [contentWidth, setContentWidth] = useState<number | string>("100%")
 
   useEffect(() => {
     const editor = editorRef.current
@@ -175,33 +176,50 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
 
     editorInstance.updateOptions({ theme: "dbml-theme" })
 
-    const updateHeight = () =>
-      setContentHeight(editorInstance.getContentHeight())
-    editorInstance.onDidContentSizeChange(updateHeight)
-    updateHeight()
+    editorInstance.onDidContentSizeChange((e) => {
+      setContentHeight(e.contentHeight)
+      setContentWidth(e.contentWidth + 8)
+    })
+    setContentHeight(editorInstance.getContentHeight())
 
     // Monaco intercepts wheel events even with its scrollbar hidden.
-    // Forward them to the outer container so native page scroll works.
+    // Forward both axes to the outer container so native scrollbars handle them.
     editorInstance.getDomNode()?.addEventListener(
       "wheel",
       (e) => {
-        scrollContainerRef.current?.scrollBy({ top: e.deltaY })
+        scrollContainerRef.current?.scrollBy({ top: e.deltaY, left: e.deltaX })
       },
       { passive: true },
     )
+
+    // Keep line numbers fixed while content scrolls horizontally.
+    // The margin (line numbers) sits inside Monaco's overflow:hidden guard, so CSS
+    // sticky won't reach the outer scroll container — we counter-translate it instead.
+    // z-index and border are handled via the injected <style> below
+
+    const container = scrollContainerRef.current
+    container?.addEventListener("scroll", () => {
+      const el = editorInstance.getDomNode()?.querySelector<HTMLElement>(".margin")
+      if (el) el.style.transform = `translateX(${container.scrollLeft}px)`
+    })
   }
 
   return (
     <div
       ref={scrollContainerRef}
-      className="absolute inset-0 overflow-y-auto overflow-x-hidden"
+      className="absolute inset-0 overflow-y-auto overflow-x-auto"
     >
       {/* Monaco injects inline background — !important needed to override */}
-      <style>{`.dbml-highlight-line { background: rgba(77, 166, 166, 0.5) !important; }`}</style>
+      <style>{`
+        .dbml-highlight-line { background: rgba(77, 166, 166, 0.5) !important; }
+        .monaco-editor .margin { z-index: 1; border-right: 1px solid #BCBDBE; }
+        .monaco-editor .lines-content { padding-left: 16px !important; }
+      `}</style>
       <Editor
         defaultLanguage="dbml"
         value={value}
         height={contentHeight}
+        width={contentWidth}
         onMount={handleMount}
         theme="dbml-theme"
         options={{
@@ -213,10 +231,12 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
           lineHeight: 18,
           padding: { top: 8, bottom: 8 },
           glyphMargin: false,
+          lineDecorationsWidth: 4,
           contextmenu: false,
-          lineNumbersMinChars: 4,
+          lineNumbersMinChars: 6,
           occurrencesHighlight: "off",
           renderLineHighlight: "none",
+          guides: { indentation: false, bracketPairs: false },
           overviewRulerLanes: 0,
           scrollbar: {
             horizontal: "hidden",

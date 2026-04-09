@@ -19,7 +19,10 @@ const ISOLATED_GRID_COLS = 4
  * Estimates the rendered height of a table node.
  * Accounts for the collapse button shown when columns exceed COLLAPSE_THRESHOLD.
  */
-const estimateNodeHeight = (columnCount: number, isCollapsed: boolean): number => {
+const estimateNodeHeight = (
+  columnCount: number,
+  isCollapsed: boolean,
+): number => {
   const visibleRows = isCollapsed
     ? Math.min(columnCount, COLLAPSE_THRESHOLD)
     : columnCount
