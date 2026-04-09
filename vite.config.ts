@@ -7,10 +7,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          monaco: ["@monaco-editor/react", "monaco-editor"],
-          xyflow: ["@xyflow/react", "dagre"],
-          dbml: ["@dbml/parse"],
+        manualChunks(id) {
+          if (
+            id.includes("@monaco-editor/react") ||
+            id.includes("monaco-editor")
+          )
+            return "monaco"
+          if (id.includes("@xyflow/react") || id.includes("dagre"))
+            return "xyflow"
+          if (id.includes("@dbml/parse")) return "dbml"
         },
       },
     },
