@@ -1,5 +1,14 @@
 import type { SchemaCol, SchemaRef, SchemaTable } from "./types"
 
+// ─── Identifier quoting ───────────────────────────────────────────────────────
+
+/**
+ * Wraps an identifier in double-quotes if it contains characters that are not
+ * safe as a bare DBML identifier (anything outside word chars: a-z, A-Z, 0-9, _).
+ */
+const quoteIdentifier = (name: string): string =>
+  /^[a-zA-Z_]\w*$/.test(name) ? name : `"${name}"`
+
 // ─── Constraint helpers ───────────────────────────────────────────────────────
 
 /**
@@ -31,15 +40,17 @@ const formatConstraints = (col: SchemaCol): string => {
  */
 const formatTable = (table: SchemaTable): string => {
   if (table.columns.length === 0) {
-    return `Table ${table.name} {\n}`
+    return `Table ${quoteIdentifier(table.name)} {\n}`
   }
 
-  // Calculate column widths for alignment
-  const nameWidth = Math.max(...table.columns.map((c) => c.name.length))
+  // Calculate column widths for alignment (using quoted form for accuracy)
+  const nameWidth = Math.max(
+    ...table.columns.map((c) => quoteIdentifier(c.name).length),
+  )
   const typeWidth = Math.max(...table.columns.map((c) => c.type.length))
 
   const rows = table.columns.map((col) => {
-    const name = col.name.padEnd(nameWidth)
+    const name = quoteIdentifier(col.name).padEnd(nameWidth)
     const type = col.type.padEnd(typeWidth)
     const constraints = formatConstraints(col)
 
@@ -52,13 +63,13 @@ const formatTable = (table: SchemaTable): string => {
     return line.trimEnd()
   })
 
-  return `Table ${table.name} {\n${rows.join("\n")}\n}`
+  return `Table ${quoteIdentifier(table.name)} {\n${rows.join("\n")}\n}`
 }
 
 // ─── Ref formatter ────────────────────────────────────────────────────────────
 
 const formatRef = (ref: SchemaRef): string =>
-  `Ref: ${ref.fromTable}.${ref.fromCol} ${ref.relationType} ${ref.toTable}.${ref.toCol}`
+  `Ref: ${quoteIdentifier(ref.fromTable)}.${quoteIdentifier(ref.fromCol)} ${ref.relationType} ${quoteIdentifier(ref.toTable)}.${quoteIdentifier(ref.toCol)}`
 
 // ─── Main formatter ───────────────────────────────────────────────────────────
 

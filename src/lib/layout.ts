@@ -10,7 +10,7 @@ const COLLAPSE_THRESHOLD = 8 // matches TableNode COLLAPSE_THRESHOLD
 const COLLAPSE_BUTTON_HEIGHT = 32
 
 const CONNECTED_SPACING_X = 80 // vertical gap between nodes in the same rank
-const CONNECTED_SPACING_Y = 120 // horizontal gap between ranks
+const CONNECTED_SPACING_Y = 250 // horizontal gap between ranks
 const ISOLATED_SPACING_X = 80
 const ISOLATED_SPACING_Y = 80
 const ISOLATED_GRID_COLS = 4
@@ -19,8 +19,13 @@ const ISOLATED_GRID_COLS = 4
  * Estimates the rendered height of a table node.
  * Accounts for the collapse button shown when columns exceed COLLAPSE_THRESHOLD.
  */
-const estimateNodeHeight = (columnCount: number): number => {
-  const visibleRows = Math.min(columnCount, COLLAPSE_THRESHOLD)
+const estimateNodeHeight = (
+  columnCount: number,
+  isCollapsed: boolean,
+): number => {
+  const visibleRows = isCollapsed
+    ? Math.min(columnCount, COLLAPSE_THRESHOLD)
+    : columnCount
   const hasCollapseButton = columnCount > COLLAPSE_THRESHOLD
   return (
     HEADER_HEIGHT +
@@ -36,6 +41,7 @@ export const getLayoutedElements = (
   nodes: AppNode[],
   edges: Edge[],
   tables: SchemaTable[],
+  collapsedTables: Set<string> = new Set(),
 ) => {
   const dagreGraph = new dagre.graphlib.Graph()
   dagreGraph.setDefaultEdgeLabel(() => ({}))
@@ -63,7 +69,8 @@ export const getLayoutedElements = (
   // Layout connected nodes with dagre
   for (const node of connectedNodes) {
     const table = tables.find((t) => t.name === node.id)
-    const height = estimateNodeHeight(table?.columns.length ?? 1)
+    const isCollapsed = collapsedTables.has(node.id)
+    const height = estimateNodeHeight(table?.columns.length ?? 1, isCollapsed)
     dagreGraph.setNode(node.id, { width: NODE_WIDTH, height })
   }
   for (const edge of edges) {
@@ -92,7 +99,8 @@ export const getLayoutedElements = (
 
   const layoutedIsolatedNodes = isolatedNodes.map((node) => {
     const table = tables.find((t) => t.name === node.id)
-    const height = estimateNodeHeight(table?.columns.length ?? 1)
+    const isCollapsed = collapsedTables.has(node.id)
+    const height = estimateNodeHeight(table?.columns.length ?? 1, isCollapsed)
     const colIndex = columnHeights.indexOf(Math.min(...columnHeights))
     const x = startX + colIndex * (NODE_WIDTH + ISOLATED_SPACING_X)
     const y = columnHeights[colIndex]

@@ -1,4 +1,5 @@
 import {
+  BOOLEAN_TYPES,
   DATE_TYPES,
   FLOAT_TYPES,
   INT_TYPES,
@@ -21,10 +22,11 @@ export const areTypesCompatible = (type1: string, type2: string): boolean => {
 
   if (norm1 === norm2) return true
   if (INT_TYPES.has(norm1) && INT_TYPES.has(norm2)) return true
-  if (TEXT_TYPES.has(norm1) && TEXT_TYPES.has(norm2)) return true
   if (FLOAT_TYPES.has(norm1) && FLOAT_TYPES.has(norm2)) return true
+  if (TEXT_TYPES.has(norm1) && TEXT_TYPES.has(norm2)) return true
   if (UUID_TYPES.has(norm1) && UUID_TYPES.has(norm2)) return true
   if (DATE_TYPES.has(norm1) && DATE_TYPES.has(norm2)) return true
+  if (BOOLEAN_TYPES.has(norm1) && BOOLEAN_TYPES.has(norm2)) return true
 
   return false
 }

@@ -273,10 +273,14 @@ export const SchemaEditor = ({
 
       const exists = refs.some(
         (ref) =>
-          ref.fromTable === connection.source &&
-          ref.fromCol === connection.sourceHandle &&
-          ref.toTable === connection.target &&
-          ref.toCol === connection.targetHandle,
+          (ref.fromTable === connection.source &&
+            ref.fromCol === connection.sourceHandle &&
+            ref.toTable === connection.target &&
+            ref.toCol === connection.targetHandle) ||
+          (ref.fromTable === connection.target &&
+            ref.fromCol === connection.targetHandle &&
+            ref.toTable === connection.source &&
+            ref.toCol === connection.sourceHandle),
       )
       if (exists) {
         showToast("warning", "This relationship already exists")
@@ -387,10 +391,10 @@ export const SchemaEditor = ({
       {!isCollapsed && (
         // biome-ignore lint/a11y/noStaticElementInteractions: drag handle
         <div
-          className="w-1 cursor-col-resize z-20 flex items-center justify-center group transition-colors delay-75 hover:delay-0 border-l border-gray-300"
+          className="-translate-x-1/2 cursor-col-resize z-20 flex items-center justify-center group transition-colors delay-75 hover:delay-0 opacity-100"
           onMouseDown={() => setIsResizing(true)}
         >
-          <div className="h-12 w-2 bg-gray-300 rounded-full group-hover:bg-white transition-colors -translate-x-px" />
+          <div className="h-12 w-2 bg-black-1 rounded-full group-hover:bg-black-3 transition-colors" />
         </div>
       )}
 
@@ -414,6 +418,15 @@ export const SchemaEditor = ({
             message={toast.message}
             variant={toast.type === "error" ? "destructive" : "warning"}
           />
+        )}
+
+        {baseSchemaData && baseSchemaData.errors.length > 0 && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/90">
+            <div className="text-center space-y-1 px-6">
+              <p className="text-sm font-medium text-gray-700">Failed to parse schema</p>
+              <p className="text-xs text-gray-400 max-w-sm">{baseSchemaData.errors[0].message}</p>
+            </div>
+          </div>
         )}
 
         <Suspense fallback={<div className="w-full h-full bg-white" />}>
