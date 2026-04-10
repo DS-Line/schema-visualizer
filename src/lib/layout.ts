@@ -10,7 +10,7 @@ const COLLAPSE_THRESHOLD = 8 // matches TableNode COLLAPSE_THRESHOLD
 const COLLAPSE_BUTTON_HEIGHT = 32
 
 const CONNECTED_SPACING_X = 80 // vertical gap between nodes in the same rank
-const CONNECTED_SPACING_Y = 320 // horizontal gap between ranks
+const CONNECTED_SPACING_Y = 250 // horizontal gap between ranks
 const ISOLATED_SPACING_X = 80
 const ISOLATED_SPACING_Y = 80
 const ISOLATED_GRID_COLS = 4

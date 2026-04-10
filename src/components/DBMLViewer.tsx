@@ -24,7 +24,23 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
   const decorationsRef = useRef<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [contentHeight, setContentHeight] = useState(200)
-  const [contentWidth, setContentWidth] = useState<number | string>("100%")
+  const [monacoContentWidth, setMonacoContentWidth] = useState(0)
+  const [containerWidth, setContainerWidth] = useState(0)
+
+  const contentWidth =
+    monacoContentWidth > 0
+      ? Math.max(monacoContentWidth, containerWidth)
+      : "100%"
+
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     const editor = editorRef.current
@@ -178,7 +194,7 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
 
     editorInstance.onDidContentSizeChange((e) => {
       setContentHeight(e.contentHeight)
-      setContentWidth(e.contentWidth + 8)
+      setMonacoContentWidth(e.contentWidth + 8)
     })
     setContentHeight(editorInstance.getContentHeight())
 
