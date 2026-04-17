@@ -242,7 +242,7 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
           readOnly: true,
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
-          fontFamily: "IBM Plex Mono",
+          fontFamily: "Jetbrains Mono",
           fontSize: 12,
           lineHeight: 18,
           padding: { top: 8, bottom: 8 },

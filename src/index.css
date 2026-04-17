@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "@fontsource/poppins";
-@import "@fontsource/poppins/500.css";
+@import "@fontsource/jetbrains-mono";
+@import "@fontsource/jetbrains-mono/500.css";
 @import "@fontsource/ibm-plex-mono";
 
 :root {
@@ -12,7 +12,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: "Poppins";
-  --font-mono: "IBM Plex Mono";
+  --font-mono: "Jetbrains Mono";
 
   /* Primary color - green */
   --color-primary-1: rgb(231, 240, 236);
