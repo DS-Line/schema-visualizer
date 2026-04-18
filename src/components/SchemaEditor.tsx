@@ -1,5 +1,5 @@
 import type { Connection } from "@xyflow/react"
-import { Workflow } from "lucide-react"
+import { AlertCircle, Workflow } from "lucide-react"
 import {
   lazy,
   Suspense,
@@ -158,6 +158,12 @@ export const SchemaEditor = ({
     window.addEventListener("resize", check)
     return () => window.removeEventListener("resize", check)
   }, [])
+
+  // When the schema fails to parse, ensure the raw DBML panel is visible.
+  const hasParseError = (baseSchemaData?.errors?.length ?? 0) > 0
+  useEffect(() => {
+    if (hasParseError) setIsCollapsed(false)
+  }, [hasParseError])
 
   const [autoArrange, setAutoArrange] = useState(true)
   const [toast, setToast] = useState<{
@@ -420,11 +426,12 @@ export const SchemaEditor = ({
           />
         )}
 
-        {baseSchemaData && baseSchemaData.errors.length > 0 && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/90">
-            <div className="text-center space-y-1 px-6">
-              <p className="text-sm font-medium text-gray-700">Failed to parse schema</p>
-              <p className="text-xs text-gray-400 max-w-sm">{baseSchemaData.errors[0].message}</p>
+        {hasParseError && (
+          <div className="absolute top-0 left-0 right-0 z-30 flex items-start gap-2 px-4 py-2.5 bg-red-50 border-b border-red-200">
+            <AlertCircle className="size-3.5 text-red-500 shrink-0 mt-px" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-red-700">Failed to parse schema</p>
+              <p className="text-xs text-red-500 truncate">{baseSchemaData!.errors[0].message}</p>
             </div>
           </div>
         )}

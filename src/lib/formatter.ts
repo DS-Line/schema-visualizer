@@ -9,6 +9,29 @@ import type { SchemaCol, SchemaRef, SchemaTable } from "./types"
 const quoteIdentifier = (name: string): string =>
   /^[a-zA-Z_]\w*$/.test(name) ? name : `"${name}"`
 
+/**
+ * Wraps a column type in double-quotes if the base name contains characters
+ * that are not safe as a bare DBML type name (anything outside letters, digits,
+ * underscores, and spaces).  Spaces are intentionally allowed so that
+ * multi-word SQL types such as "character varying" or "timestamp with time
+ * zone" are left unquoted; only types with hyphens, dots, slashes, or other
+ * punctuation (e.g. "USER-DEFINED", "my.type") get quoted.
+ *
+ * The args portion "(n,m)" is preserved verbatim and never quoted.
+ */
+const quoteType = (type: string): string => {
+  const parenIdx = type.indexOf("(")
+  if (parenIdx === -1) {
+    return /^[a-zA-Z_][a-zA-Z0-9_ ]*$/.test(type) ? type : `"${type}"`
+  }
+  const baseName = type.slice(0, parenIdx)
+  const args = type.slice(parenIdx)
+  const quotedBase = /^[a-zA-Z_][a-zA-Z0-9_ ]*$/.test(baseName)
+    ? baseName
+    : `"${baseName}"`
+  return `${quotedBase}${args}`
+}
+
 // ─── Constraint helpers ───────────────────────────────────────────────────────
 
 /**
@@ -43,21 +66,25 @@ const formatTable = (table: SchemaTable): string => {
     return `Table ${quoteIdentifier(table.name)} {\n}`
   }
 
-  // Calculate column widths for alignment (using quoted form for accuracy)
-  const nameWidth = Math.max(
-    ...table.columns.map((c) => quoteIdentifier(c.name).length),
-  )
-  const typeWidth = Math.max(...table.columns.map((c) => c.type.length))
+  // Pre-compute quoted forms so widths and output use the same strings.
+  const quoted = table.columns.map((col) => ({
+    col,
+    name: quoteIdentifier(col.name),
+    type: quoteType(col.type),
+  }))
 
-  const rows = table.columns.map((col) => {
-    const name = quoteIdentifier(col.name).padEnd(nameWidth)
-    const type = col.type.padEnd(typeWidth)
+  const nameWidth = Math.max(...quoted.map((q) => q.name.length))
+  const typeWidth = Math.max(...quoted.map((q) => q.type.length))
+
+  const rows = quoted.map(({ col, name, type }) => {
+    const paddedName = name.padEnd(nameWidth)
+    const paddedType = type.padEnd(typeWidth)
     const constraints = formatConstraints(col)
 
     // Only include the constraint block if there are constraints
     const line = constraints
-      ? `  ${name}  ${type}  ${constraints}`
-      : `  ${name}  ${type}`
+      ? `  ${paddedName}  ${paddedType}  ${constraints}`
+      : `  ${paddedName}  ${paddedType}`
 
     // Trim trailing spaces on lines without constraints
     return line.trimEnd()
