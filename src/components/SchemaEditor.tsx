@@ -130,7 +130,8 @@ export const SchemaEditor = ({
 
   // ─── UI state ──────────────────────────────────────────────────────────────
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH)
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
+  // In readonly mode the DBML panel is collapsed by default.
+  const [isCollapsed, setIsCollapsed] = useState(readonly || defaultCollapsed)
   const [isResizing, setIsResizing] = useState(false)
 
   // Collapse the editor when entering fullscreen; restore on exit.
@@ -222,7 +223,6 @@ export const SchemaEditor = ({
   // ─── Handlers ──────────────────────────────────────────────────────────────
   const handleColumnToggle = useCallback(
     (tableName: string, columnName: string) => {
-      if (readonly) return
       const key = `${tableName}.${columnName}`
       setCachedColumns((prev) => {
         const next = new Set(prev)
@@ -244,20 +244,18 @@ export const SchemaEditor = ({
         return next
       })
     },
-    [isControlled, readonly, showToast],
+    [isControlled, showToast],
   )
 
   const handleEdgeDelete = useCallback(
     (refId: string) => {
-      if (readonly) return
       setRefs((prev) => prev.filter((r) => r.id !== refId))
     },
-    [readonly],
+    [],
   )
 
   const handleEdgeCreate = useCallback(
     (connection: Connection) => {
-      if (readonly) return
       if (
         !connection.source ||
         !connection.target ||
@@ -311,7 +309,7 @@ export const SchemaEditor = ({
         },
       ])
     },
-    [refs, baseSchemaData, readonly, showToast],
+    [refs, baseSchemaData, showToast],
   )
 
   // ─── Sidebar resize ────────────────────────────────────────────────────────
@@ -402,7 +400,7 @@ export const SchemaEditor = ({
           className="-translate-x-1/2 cursor-col-resize z-20 flex items-center justify-center group transition-colors delay-75 hover:delay-0 opacity-100"
           onMouseDown={() => setIsResizing(true)}
         >
-          <div className="h-12 w-2 bg-black-1 rounded-full group-hover:bg-black-3 transition-colors" />
+          <div className="absolute h-12 w-2 bg-black-1 rounded-full group-hover:bg-black-3 transition-colors" />
         </div>
       )}
 
@@ -457,22 +455,24 @@ export const SchemaEditor = ({
           />
         </Suspense>
 
-        {/* Top-right controls */}
-        <div className="absolute top-4 right-4 z-40 flex items-start gap-3 pointer-events-auto">
-          <button
-            type="button"
-            title={autoArrange ? "Auto-arrange on" : "Auto-arrange off"}
-            onClick={() => setAutoArrange((v) => !v)}
-            className={`transition-colors ${autoArrange ? "text-teal-7" : "text-black-5 hover:text-black-10"}`}
-          >
-            <Workflow size={20} />
-          </button>
+        {/* Top-right controls — hidden in readonly */}
+        {!readonly && (
+          <div className="absolute top-4 right-4 z-40 flex items-start gap-3 pointer-events-auto">
+            <button
+              type="button"
+              title={autoArrange ? "Auto-arrange on" : "Auto-arrange off"}
+              onClick={() => setAutoArrange((v) => !v)}
+              className={`transition-colors ${autoArrange ? "text-teal-7" : "text-black-5 hover:text-black-10"}`}
+            >
+              <Workflow size={20} />
+            </button>
 
-          <ColumnInfoPanel
-            cachedColumns={cachedColumns}
-            initialCachedColumns={initialCachedColumns.current}
-          />
-        </div>
+            <ColumnInfoPanel
+              cachedColumns={cachedColumns}
+              initialCachedColumns={initialCachedColumns.current}
+            />
+          </div>
+        )}
       </div>
 
       {isResizing && <div className="fixed inset-0 z-9999 cursor-col-resize" />}

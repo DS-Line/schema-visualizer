@@ -1,6 +1,6 @@
 import { Editor, type Monaco } from "@monaco-editor/react"
 import type { editor } from "monaco-editor"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 
 // Monaco's defineTheme API requires literal hex strings — CSS variables are not supported there.
 const MONACO_THEME = {
@@ -11,6 +11,10 @@ const MONACO_THEME = {
   identifier: "1F2227",
   background: "#FAF9F5",
   lineNumber: "#BCBDBE",
+  // Matches --scrollbar-thumb / --scrollbar-thumb-hover from globals.css
+  scrollbarThumb: "#D9D9D980",
+  scrollbarThumbHover: "#D9D9D9FF",
+  scrollbarThumbActive: "#101828FF",
 } as const
 
 interface Props {
@@ -22,25 +26,6 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
   const monacoRef = useRef<Monaco>(null)
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null)
   const decorationsRef = useRef<string[]>([])
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const [contentHeight, setContentHeight] = useState(200)
-  const [monacoContentWidth, setMonacoContentWidth] = useState(0)
-  const [containerWidth, setContainerWidth] = useState(0)
-
-  const contentWidth =
-    monacoContentWidth > 0
-      ? Math.max(monacoContentWidth, containerWidth)
-      : "100%"
-
-  useEffect(() => {
-    const el = scrollContainerRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      setContainerWidth(entry.contentRect.width)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
 
   useEffect(() => {
     const editor = editorRef.current
@@ -59,13 +44,8 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
         : [],
     )
 
-    if (scrollToLine !== undefined && scrollContainerRef.current) {
-      const lineTop = editor.getTopForLineNumber(scrollToLine)
-      const containerHeight = scrollContainerRef.current.clientHeight
-      scrollContainerRef.current.scrollTo({
-        top: lineTop - containerHeight / 2,
-        behavior: "smooth",
-      })
+    if (scrollToLine !== undefined) {
+      editor.revealLineInCenter(scrollToLine)
     }
   }, [scrollToLine])
 
@@ -188,57 +168,32 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
         "editor.background": MONACO_THEME.background,
         "editorLineNumber.foreground": MONACO_THEME.lineNumber,
         "editorLineNumber.activeForeground": MONACO_THEME.lineNumber,
+        // Match the app's custom scrollbar palette from globals.css
+        "scrollbarSlider.background": MONACO_THEME.scrollbarThumb,
+        "scrollbarSlider.hoverBackground": MONACO_THEME.scrollbarThumbHover,
+        "scrollbarSlider.activeBackground": MONACO_THEME.scrollbarThumbActive,
+        "scrollbar.shadow": "#00000000",
       },
     })
 
     editorInstance.updateOptions({ theme: "dbml-theme" })
-
-    editorInstance.onDidContentSizeChange((e) => {
-      setContentHeight(e.contentHeight)
-      setMonacoContentWidth(e.contentWidth + 8)
-    })
-    setContentHeight(editorInstance.getContentHeight())
-
-    // Monaco intercepts wheel events even with its scrollbar hidden.
-    // Forward both axes to the outer container so native scrollbars handle them.
-    editorInstance.getDomNode()?.addEventListener(
-      "wheel",
-      (e) => {
-        scrollContainerRef.current?.scrollBy({ top: e.deltaY, left: e.deltaX })
-      },
-      { passive: true },
-    )
-
-    // Keep line numbers fixed while content scrolls horizontally.
-    // The margin (line numbers) sits inside Monaco's overflow:hidden guard, so CSS
-    // sticky won't reach the outer scroll container — we counter-translate it instead.
-    // z-index and border are handled via the injected <style> below
-
-    const container = scrollContainerRef.current
-    container?.addEventListener("scroll", () => {
-      const el = editorInstance
-        .getDomNode()
-        ?.querySelector<HTMLElement>(".margin")
-      if (el) el.style.transform = `translateX(${container.scrollLeft}px)`
-    })
   }
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className="absolute inset-0 overflow-y-auto overflow-x-auto"
-    >
-      {/* Monaco injects inline background — !important needed to override */}
+    <div className="absolute inset-0">
       <style>{`
         .dbml-highlight-line { background: rgba(77, 166, 166, 0.5) !important; }
-        .monaco-editor .margin { z-index: 1; border-right: 1px solid #BCBDBE; }
+        .monaco-editor .margin { border-right: 1px solid #BCBDBE; }
         .monaco-editor .lines-content { padding-left: 16px !important; }
+        .monaco-scrollable-element > .scrollbar {
+          background: ${MONACO_THEME.background} !important;
+        }
       `}</style>
       <Editor
         defaultLanguage="dbml"
         value={value}
-        height={contentHeight}
-        width={contentWidth}
+        height="100%"
+        width="100%"
         onMount={handleMount}
         theme="dbml-theme"
         options={{
@@ -258,8 +213,13 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
           guides: { indentation: false, bracketPairs: false },
           overviewRulerLanes: 0,
           scrollbar: {
-            horizontal: "hidden",
-            vertical: "hidden",
+            vertical: "auto",
+            horizontal: "auto",
+            useShadows: false,
+            verticalScrollbarSize: 3,
+            horizontalScrollbarSize: 3,
+            verticalSliderSize: 3,
+            horizontalSliderSize: 3,
           },
         }}
       />
