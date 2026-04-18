@@ -3,33 +3,26 @@ import type { SchemaCol, SchemaRef, SchemaTable } from "./types"
 // ─── Identifier quoting ───────────────────────────────────────────────────────
 
 /**
- * Wraps an identifier in double-quotes if it contains characters that are not
- * safe as a bare DBML identifier (anything outside word chars: a-z, A-Z, 0-9, _).
+ * Always wraps an identifier in double-quotes.  Quoting unconditionally is
+ * safe — @dbml/parse strips quotes on re-parse — and avoids edge cases with
+ * names that contain hyphens, spaces, dots, or other special characters.
  */
-const quoteIdentifier = (name: string): string =>
-  /^[a-zA-Z_]\w*$/.test(name) ? name : `"${name}"`
+const quoteIdentifier = (name: string): string => `"${name}"`
 
 /**
- * Wraps a column type in double-quotes if the base name contains characters
- * that are not safe as a bare DBML type name (anything outside letters, digits,
- * underscores, and spaces).  Spaces are intentionally allowed so that
- * multi-word SQL types such as "character varying" or "timestamp with time
- * zone" are left unquoted; only types with hyphens, dots, slashes, or other
- * punctuation (e.g. "USER-DEFINED", "my.type") get quoted.
+ * Always wraps the base type name in double-quotes; the args portion "(n,m)"
+ * is preserved verbatim and never quoted.
  *
- * The args portion "(n,m)" is preserved verbatim and never quoted.
+ * Quoting unconditionally is safe: @dbml/parse strips the quotes on re-parse
+ * (round-trip is clean), and it's the only way to handle multi-word SQL types
+ * such as "character varying" or "timestamp with time zone" unambiguously —
+ * leaving them unquoted causes the tokenizer to mistake the second word for a
+ * new column name.
  */
 const quoteType = (type: string): string => {
   const parenIdx = type.indexOf("(")
-  if (parenIdx === -1) {
-    return /^[a-zA-Z_][a-zA-Z0-9_ ]*$/.test(type) ? type : `"${type}"`
-  }
-  const baseName = type.slice(0, parenIdx)
-  const args = type.slice(parenIdx)
-  const quotedBase = /^[a-zA-Z_][a-zA-Z0-9_ ]*$/.test(baseName)
-    ? baseName
-    : `"${baseName}"`
-  return `${quotedBase}${args}`
+  if (parenIdx === -1) return `"${type}"`
+  return `"${type.slice(0, parenIdx)}"${type.slice(parenIdx)}`
 }
 
 // ─── Constraint helpers ───────────────────────────────────────────────────────

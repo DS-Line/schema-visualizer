@@ -133,6 +133,7 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
         // Handles any SQL or custom type without enumeration.
         col_type: [
           [/[ \t]+/, ""], // skip horizontal whitespace only
+          [/"[^"]*"/, { token: "type", next: "@pop" }], // quoted type ("USER-DEFINED", "character varying", etc.)
           [/[a-zA-Z_][\w$]*/, { token: "type", next: "@pop" }],
           // Constraint block directly after name (type omitted) — bail back
           [/\[/, { token: "@brackets", next: "@pop" }],
@@ -215,7 +216,9 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
 
     const container = scrollContainerRef.current
     container?.addEventListener("scroll", () => {
-      const el = editorInstance.getDomNode()?.querySelector<HTMLElement>(".margin")
+      const el = editorInstance
+        .getDomNode()
+        ?.querySelector<HTMLElement>(".margin")
       if (el) el.style.transform = `translateX(${container.scrollLeft}px)`
     })
   }

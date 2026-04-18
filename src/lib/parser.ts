@@ -58,7 +58,15 @@ export const parseSchema = (dbmlString: string): SchemaData => {
     return {
       tables: [],
       refs: [],
-      errors: [{ message, startLineNumber: 0, startColumn: 0, endLineNumber: 0, endColumn: 0 }],
+      errors: [
+        {
+          message,
+          startLineNumber: 0,
+          startColumn: 0,
+          endLineNumber: 0,
+          endColumn: 0,
+        },
+      ],
     }
   }
 }

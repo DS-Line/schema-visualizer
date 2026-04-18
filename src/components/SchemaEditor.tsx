@@ -121,7 +121,9 @@ export const SchemaEditor = ({
     const ref = refs.find((r) => r.id === selectedRefId)
     if (!ref) return undefined
     const dbml = formatDBML(baseSchemaData?.tables ?? [], refs)
-    const target = `Ref: ${ref.fromTable}.${ref.fromCol} ${ref.relationType} ${ref.toTable}.${ref.toCol}`
+    // formatRef always quotes identifiers, so match that exact format
+    const q = (s: string) => `"${s}"`
+    const target = `Ref: ${q(ref.fromTable)}.${q(ref.fromCol)} ${ref.relationType} ${q(ref.toTable)}.${q(ref.toCol)}`
     const lineIndex = dbml.split("\n").indexOf(target)
     return lineIndex >= 0 ? lineIndex + 1 : undefined
   }, [selectedRefId, refs, baseSchemaData])
@@ -430,8 +432,12 @@ export const SchemaEditor = ({
           <div className="absolute top-0 left-0 right-0 z-30 flex items-start gap-2 px-4 py-2.5 bg-red-50 border-b border-red-200">
             <AlertCircle className="size-3.5 text-red-500 shrink-0 mt-px" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-red-700">Failed to parse schema</p>
-              <p className="text-xs text-red-500 truncate">{baseSchemaData!.errors[0].message}</p>
+              <p className="text-xs font-medium text-red-700">
+                Failed to parse schema
+              </p>
+              <p className="text-xs text-red-500 truncate">
+                {baseSchemaData?.errors[0].message}
+              </p>
             </div>
           </div>
         )}
