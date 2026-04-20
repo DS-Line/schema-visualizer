@@ -359,10 +359,10 @@ export const SchemaEditor = ({
       >
         {!isCollapsed && (
           <>
-            <div className="h-12 flex items-center justify-between px-3 border-b border-black-3 shrink-0 overflow-hidden">
+            <div className="h-12 flex items-center justify-between px-4 py-3 border-b border-black-3 shrink-0 overflow-hidden">
               <div className="flex items-center gap-2 truncate text-black-10">
-                <Icons.data className="size-4" />
-                <span className="hidden sm:inline font-medium">Schema</span>
+                <Icons.checkFilled className="size-4 text-primary" />
+                <span className="hidden sm:inline text-sm mt-1 font-normal">Schema</span>
               </div>
               <button
                 type="button"
