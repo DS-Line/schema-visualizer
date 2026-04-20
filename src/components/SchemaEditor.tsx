@@ -462,7 +462,7 @@ export const SchemaEditor = ({
               type="button"
               title={autoArrange ? "Auto-arrange on" : "Auto-arrange off"}
               onClick={() => setAutoArrange((v) => !v)}
-              className={`transition-colors ${autoArrange ? "text-teal-7" : "text-black-5 hover:text-black-10"}`}
+              className={`transition-colors ${autoArrange ? "text-black-10" : "text-black-5 hover:text-black-10"}`}
             >
               <Workflow size={20} />
             </button>

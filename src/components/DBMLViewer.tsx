@@ -11,7 +11,6 @@ const MONACO_THEME = {
   identifier: "1F2227",
   background: "#FAF9F5",
   lineNumber: "#BCBDBE",
-  // Matches --scrollbar-thumb / --scrollbar-thumb-hover from globals.css
   scrollbarThumb: "#D9D9D980",
   scrollbarThumbHover: "#D9D9D9FF",
   scrollbarThumbActive: "#101828FF",
@@ -168,7 +167,6 @@ export default function DBMLViewer({ value, scrollToLine }: Props) {
         "editor.background": MONACO_THEME.background,
         "editorLineNumber.foreground": MONACO_THEME.lineNumber,
         "editorLineNumber.activeForeground": MONACO_THEME.lineNumber,
-        // Match the app's custom scrollbar palette from globals.css
         "scrollbarSlider.background": MONACO_THEME.scrollbarThumb,
         "scrollbarSlider.hoverBackground": MONACO_THEME.scrollbarThumbHover,
         "scrollbarSlider.activeBackground": MONACO_THEME.scrollbarThumbActive,
