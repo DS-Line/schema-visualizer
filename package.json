@@ -17,7 +17,7 @@
   "dependencies": {
     "@dbml/parse": "6.4.0",
     "@fontsource-variable/ibm-plex-sans": "^5.2.8",
-    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/vite": "^4.2.2",

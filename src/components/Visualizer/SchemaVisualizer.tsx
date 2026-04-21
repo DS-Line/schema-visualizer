@@ -108,7 +108,12 @@ export default function SchemaVisualizer({
       data: { refId: ref.id },
     }))
 
-    return getLayoutedElements(baseNodes, baseEdges, data.tables, collapsedTables)
+    return getLayoutedElements(
+      baseNodes,
+      baseEdges,
+      data.tables,
+      collapsedTables,
+    )
   }, [data.tables, collapsedTables])
 
   // Edges: recalculates when refs change. Does not affect node positions.

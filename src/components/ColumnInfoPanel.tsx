@@ -56,7 +56,7 @@ export function ColumnInfoPanel({
         onClick={handleClick}
         className={cn(
           "transition-colors",
-          open ? "text-teal-7" : "text-black-5 hover:text-black-10 ",
+          open ? "text-black-10" : "text-black-5 hover:text-black-10 ",
         )}
       >
         <Icons.info className="size-5" />

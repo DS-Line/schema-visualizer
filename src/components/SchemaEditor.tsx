@@ -1,5 +1,5 @@
 import type { Connection } from "@xyflow/react"
-import { Workflow } from "lucide-react"
+import { AlertCircle, Workflow } from "lucide-react"
 import {
   lazy,
   Suspense,
@@ -121,14 +121,17 @@ export const SchemaEditor = ({
     const ref = refs.find((r) => r.id === selectedRefId)
     if (!ref) return undefined
     const dbml = formatDBML(baseSchemaData?.tables ?? [], refs)
-    const target = `Ref: ${ref.fromTable}.${ref.fromCol} ${ref.relationType} ${ref.toTable}.${ref.toCol}`
+    // formatRef always quotes identifiers, so match that exact format
+    const q = (s: string) => `"${s}"`
+    const target = `Ref: ${q(ref.fromTable)}.${q(ref.fromCol)} ${ref.relationType} ${q(ref.toTable)}.${q(ref.toCol)}`
     const lineIndex = dbml.split("\n").indexOf(target)
     return lineIndex >= 0 ? lineIndex + 1 : undefined
   }, [selectedRefId, refs, baseSchemaData])
 
   // ─── UI state ──────────────────────────────────────────────────────────────
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH)
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
+  // In readonly mode the DBML panel is collapsed by default.
+  const [isCollapsed, setIsCollapsed] = useState(readonly || defaultCollapsed)
   const [isResizing, setIsResizing] = useState(false)
 
   // Collapse the editor when entering fullscreen; restore on exit.
@@ -158,6 +161,12 @@ export const SchemaEditor = ({
     window.addEventListener("resize", check)
     return () => window.removeEventListener("resize", check)
   }, [])
+
+  // When the schema fails to parse, ensure the raw DBML panel is visible.
+  const hasParseError = (baseSchemaData?.errors?.length ?? 0) > 0
+  useEffect(() => {
+    if (hasParseError) setIsCollapsed(false)
+  }, [hasParseError])
 
   const [autoArrange, setAutoArrange] = useState(true)
   const [toast, setToast] = useState<{
@@ -214,7 +223,6 @@ export const SchemaEditor = ({
   // ─── Handlers ──────────────────────────────────────────────────────────────
   const handleColumnToggle = useCallback(
     (tableName: string, columnName: string) => {
-      if (readonly) return
       const key = `${tableName}.${columnName}`
       setCachedColumns((prev) => {
         const next = new Set(prev)
@@ -236,20 +244,18 @@ export const SchemaEditor = ({
         return next
       })
     },
-    [isControlled, readonly, showToast],
+    [isControlled, showToast],
   )
 
   const handleEdgeDelete = useCallback(
     (refId: string) => {
-      if (readonly) return
       setRefs((prev) => prev.filter((r) => r.id !== refId))
     },
-    [readonly],
+    [],
   )
 
   const handleEdgeCreate = useCallback(
     (connection: Connection) => {
-      if (readonly) return
       if (
         !connection.source ||
         !connection.target ||
@@ -303,7 +309,7 @@ export const SchemaEditor = ({
         },
       ])
     },
-    [refs, baseSchemaData, readonly, showToast],
+    [refs, baseSchemaData, showToast],
   )
 
   // ─── Sidebar resize ────────────────────────────────────────────────────────
@@ -353,10 +359,10 @@ export const SchemaEditor = ({
       >
         {!isCollapsed && (
           <>
-            <div className="h-12 flex items-center justify-between px-3 border-b border-black-3 shrink-0 overflow-hidden">
+            <div className="h-12 flex items-center justify-between px-4 py-3 border-b border-black-3 shrink-0 overflow-hidden">
               <div className="flex items-center gap-2 truncate text-black-10">
-                <Icons.data className="size-4" />
-                <span className="hidden sm:inline font-medium">SCHEMA</span>
+                <Icons.checkFilled className="size-4 text-primary" />
+                <span className="hidden sm:inline text-sm mt-1 font-normal">Schema</span>
               </div>
               <button
                 type="button"
@@ -394,7 +400,7 @@ export const SchemaEditor = ({
           className="-translate-x-1/2 cursor-col-resize z-20 flex items-center justify-center group transition-colors delay-75 hover:delay-0 opacity-100"
           onMouseDown={() => setIsResizing(true)}
         >
-          <div className="h-12 w-2 bg-black-1 rounded-full group-hover:bg-black-3 transition-colors" />
+          <div className="absolute h-12 w-2 bg-black-1 rounded-full group-hover:bg-black-3 transition-colors" />
         </div>
       )}
 
@@ -420,11 +426,16 @@ export const SchemaEditor = ({
           />
         )}
 
-        {baseSchemaData && baseSchemaData.errors.length > 0 && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/90">
-            <div className="text-center space-y-1 px-6">
-              <p className="text-sm font-medium text-gray-700">Failed to parse schema</p>
-              <p className="text-xs text-gray-400 max-w-sm">{baseSchemaData.errors[0].message}</p>
+        {hasParseError && (
+          <div className="absolute top-0 left-0 right-0 z-30 flex items-start gap-2 px-4 py-2.5 bg-red-50 border-b border-red-200">
+            <AlertCircle className="size-3.5 text-red-500 shrink-0 mt-px" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-red-700">
+                Failed to parse schema
+              </p>
+              <p className="text-xs text-red-500 truncate">
+                {baseSchemaData?.errors[0].message}
+              </p>
             </div>
           </div>
         )}
@@ -444,22 +455,24 @@ export const SchemaEditor = ({
           />
         </Suspense>
 
-        {/* Top-right controls */}
-        <div className="absolute top-4 right-4 z-40 flex items-start gap-3 pointer-events-auto">
-          <button
-            type="button"
-            title={autoArrange ? "Auto-arrange on" : "Auto-arrange off"}
-            onClick={() => setAutoArrange((v) => !v)}
-            className={`transition-colors ${autoArrange ? "text-teal-7" : "text-black-5 hover:text-black-10"}`}
-          >
-            <Workflow size={20} />
-          </button>
+        {/* Top-right controls — hidden in readonly */}
+        {!readonly && (
+          <div className="absolute top-4 right-4 z-40 flex items-start gap-3 pointer-events-auto">
+            <button
+              type="button"
+              title={autoArrange ? "Auto-arrange on" : "Auto-arrange off"}
+              onClick={() => setAutoArrange((v) => !v)}
+              className={`transition-colors ${autoArrange ? "text-black-10" : "text-black-5 hover:text-black-10"}`}
+            >
+              <Workflow size={20} />
+            </button>
 
-          <ColumnInfoPanel
-            cachedColumns={cachedColumns}
-            initialCachedColumns={initialCachedColumns.current}
-          />
-        </div>
+            <ColumnInfoPanel
+              cachedColumns={cachedColumns}
+              initialCachedColumns={initialCachedColumns.current}
+            />
+          </div>
+        )}
       </div>
 
       {isResizing && <div className="fixed inset-0 z-9999 cursor-col-resize" />}

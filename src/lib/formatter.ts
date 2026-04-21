@@ -3,11 +3,27 @@ import type { SchemaCol, SchemaRef, SchemaTable } from "./types"
 // ─── Identifier quoting ───────────────────────────────────────────────────────
 
 /**
- * Wraps an identifier in double-quotes if it contains characters that are not
- * safe as a bare DBML identifier (anything outside word chars: a-z, A-Z, 0-9, _).
+ * Always wraps an identifier in double-quotes.  Quoting unconditionally is
+ * safe — @dbml/parse strips quotes on re-parse — and avoids edge cases with
+ * names that contain hyphens, spaces, dots, or other special characters.
  */
-const quoteIdentifier = (name: string): string =>
-  /^[a-zA-Z_]\w*$/.test(name) ? name : `"${name}"`
+const quoteIdentifier = (name: string): string => `"${name}"`
+
+/**
+ * Always wraps the base type name in double-quotes; the args portion "(n,m)"
+ * is preserved verbatim and never quoted.
+ *
+ * Quoting unconditionally is safe: @dbml/parse strips the quotes on re-parse
+ * (round-trip is clean), and it's the only way to handle multi-word SQL types
+ * such as "character varying" or "timestamp with time zone" unambiguously —
+ * leaving them unquoted causes the tokenizer to mistake the second word for a
+ * new column name.
+ */
+const quoteType = (type: string): string => {
+  const parenIdx = type.indexOf("(")
+  if (parenIdx === -1) return `"${type}"`
+  return `"${type.slice(0, parenIdx)}"${type.slice(parenIdx)}`
+}
 
 // ─── Constraint helpers ───────────────────────────────────────────────────────
 
@@ -43,21 +59,25 @@ const formatTable = (table: SchemaTable): string => {
     return `Table ${quoteIdentifier(table.name)} {\n}`
   }
 
-  // Calculate column widths for alignment (using quoted form for accuracy)
-  const nameWidth = Math.max(
-    ...table.columns.map((c) => quoteIdentifier(c.name).length),
-  )
-  const typeWidth = Math.max(...table.columns.map((c) => c.type.length))
+  // Pre-compute quoted forms so widths and output use the same strings.
+  const quoted = table.columns.map((col) => ({
+    col,
+    name: quoteIdentifier(col.name),
+    type: quoteType(col.type),
+  }))
 
-  const rows = table.columns.map((col) => {
-    const name = quoteIdentifier(col.name).padEnd(nameWidth)
-    const type = col.type.padEnd(typeWidth)
+  const nameWidth = Math.max(...quoted.map((q) => q.name.length))
+  const typeWidth = Math.max(...quoted.map((q) => q.type.length))
+
+  const rows = quoted.map(({ col, name, type }) => {
+    const paddedName = name.padEnd(nameWidth)
+    const paddedType = type.padEnd(typeWidth)
     const constraints = formatConstraints(col)
 
     // Only include the constraint block if there are constraints
     const line = constraints
-      ? `  ${name}  ${type}  ${constraints}`
-      : `  ${name}  ${type}`
+      ? `  ${paddedName}  ${paddedType}  ${constraints}`
+      : `  ${paddedName}  ${paddedType}`
 
     // Trim trailing spaces on lines without constraints
     return line.trimEnd()
