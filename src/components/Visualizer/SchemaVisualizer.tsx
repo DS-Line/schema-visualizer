@@ -320,7 +320,7 @@ export default function SchemaVisualizer({
     const selectedEdge = selectedEdgeId
       ? (edges.find((e) => e.id === selectedEdgeId) ?? null)
       : null
-    return nodes.map((n) => {
+    return nodes.map((n,index) => {
       let selectedRefCols: Set<string> | undefined
       if (selectedEdge) {
         if (n.id === selectedEdge.source && selectedEdge.sourceHandle) {
@@ -333,6 +333,7 @@ export default function SchemaVisualizer({
         ...n,
         data: {
           ...n.data,
+          dataTestId:`schema-table-visualizer-${index}`,
           relatedCols: relatedColsMap.get(n.id) ?? new Set<string>(),
           cachedColumns,
           onColumnToggle: readonly ? undefined : onColumnToggle,

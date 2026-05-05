@@ -13,6 +13,7 @@ import { Checkbox } from "../ui/checkbox"
 
 interface TableNodeData {
   table: SchemaTable
+  dataTestId?:string
   cachedColumns?: Set<string>
   onColumnToggle?: (tableName: string, columnName: string) => void
   relatedCols: Set<string>
@@ -75,7 +76,7 @@ export const TableNode = memo<Props>(({ data }) => {
   }, [table.name, updateNodeInternals])
 
   return (
-    <div className="w-72 bg-teal-7 border border-teal-7 border-t-4 rounded overflow-hidden text-xs leading-4 font-mono">
+    <div className="w-72 bg-teal-7 border border-teal-7 border-t-4 rounded overflow-hidden text-xs leading-4 font-mono" data-testid={data.dataTestId}>
       <div className="bg-teal-1 flex items-center gap-2 px-4 pt-3 pb-2 border-teal-7 border-b rounded-t">
         <PanelsTopLeftIcon className="size-3 shrink-0" />
         <span className="truncate">{table.name}</span>
